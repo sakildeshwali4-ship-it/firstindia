@@ -4,14 +4,20 @@ namespace App\Http\Controllers\Admin\Reels;
 
 use App\Http\Controllers\Controller;
 use App\Models\Reels\DramaSeries;
+use App\Services\ReelSeriesPricingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class SeriesController extends Controller
 {
+    public function __construct(private ReelSeriesPricingService $pricingService)
+    {
+    }
+
     public function index(Request $request): View
     {
         $query = trim((string) $request->query('q', ''));
@@ -49,8 +55,12 @@ class SeriesController extends Controller
         $data['cover_url'] = $this->mediaPath($request, 'cover_file', $data['cover_url'] ?? null, 'posters');
         $data['is_premium'] = $request->boolean('is_premium');
         $data['coin_price'] = $data['is_premium'] ? ($data['coin_price'] ?? 0) : 0;
+        $series = DB::transaction(function () use ($data): DramaSeries {
+            $series = DramaSeries::query()->create($data);
+            $this->pricingService->syncSeriesEpisodes($series);
 
-        $series = DramaSeries::query()->create($data);
+            return $series;
+        });
 
         return redirect()
             ->route('series.show', $series)
@@ -79,8 +89,10 @@ class SeriesController extends Controller
         $data['cover_url'] = $this->mediaPath($request, 'cover_file', $data['cover_url'] ?? $series->cover_url, 'posters');
         $data['is_premium'] = $request->boolean('is_premium');
         $data['coin_price'] = $data['is_premium'] ? ($data['coin_price'] ?? 0) : 0;
-
-        $series->update($data);
+        DB::transaction(function () use ($series, $data): void {
+            $series->update($data);
+            $this->pricingService->syncSeriesEpisodes($series);
+        });
 
         return redirect()
             ->route('series.show', $series)
@@ -114,6 +126,7 @@ class SeriesController extends Controller
             'total_episodes' => ['required', 'integer', 'min:0', 'max:9999'],
             'is_premium' => ['nullable', 'boolean'],
             'coin_price' => ['nullable', 'integer', 'min:0', 'max:10000000'],
+            'number_of_free_episodes' => ['required', 'integer', 'min:0', 'max:9999'],
             'status' => ['required', 'in:draft,published,archived'],
         ]);
     }

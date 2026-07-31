@@ -51,7 +51,7 @@ class SeriesController extends Controller
                 'coin_price' => $series->coin_price,
             ],
             'episodes' => $series->episodes()
-                ->where('is_locked', true)
+                ->where('is_premium', true)
                 ->get(['id', 'series_id', 'number', 'title', 'is_locked', 'coin_price'])
                 ->map(fn ($episode): array => [
                     'id' => $episode->id,

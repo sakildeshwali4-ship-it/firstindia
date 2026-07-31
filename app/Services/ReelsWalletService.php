@@ -127,7 +127,7 @@ class ReelsWalletService
                 ];
             }
 
-            if (! $episode->is_locked || (int) $episode->coin_price <= 0) {
+            if (! $this->episodeRequiresPurchase($episode)) {
                 $purchase = UserEpisodePurchase::query()->create([
                     'user_id' => $walletUser->id,
                     'episode_id' => $episode->id,
@@ -186,7 +186,7 @@ class ReelsWalletService
 
     public function hasEpisodeAccess(int $userId, Episode $episode): bool
     {
-        if (! $episode->is_locked || (int) $episode->coin_price <= 0) {
+        if (! $this->episodeRequiresPurchase($episode)) {
             return true;
         }
 
@@ -194,5 +194,10 @@ class ReelsWalletService
             ->where('user_id', $userId)
             ->where('episode_id', $episode->id)
             ->exists();
+    }
+
+    private function episodeRequiresPurchase(Episode $episode): bool
+    {
+        return (bool) $episode->is_premium && (int) $episode->coin_price > 0;
     }
 }

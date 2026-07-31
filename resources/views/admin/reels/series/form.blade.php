@@ -57,6 +57,10 @@
                 <label for="coin_price">Series Coin Price</label>
                 <input id="coin_price" name="coin_price" class="form-control" type="number" min="0" value="{{ old('coin_price', $series->coin_price ?? 0) }}">
             </div>
+            <div class="col-sm-6 mb-3">
+                <label for="number_of_free_episodes">Number of Free Episodes</label>
+                <input id="number_of_free_episodes" name="number_of_free_episodes" class="form-control" type="number" min="0" value="{{ old('number_of_free_episodes', $series->number_of_free_episodes ?? 0) }}" required>
+            </div>
             <div class="col-sm-12 mb-3">
                 <div class="form-check">
                     <input type="checkbox" name="is_premium" value="1" class="form-check-input" id="is_premium" @checked(old('is_premium', $series->is_premium))>

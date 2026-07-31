@@ -34,6 +34,7 @@
                         <p><strong>Total Episodes:</strong> {{ $series->total_episodes }}</p>
                         <p><strong>Type:</strong> {{ $series->is_premium ? 'Premium' : 'Free' }}</p>
                         <p><strong>Series Price:</strong> {{ $series->coin_price }} coins</p>
+                        <p><strong>Free Episodes:</strong> {{ $series->number_of_free_episodes }}</p>
                         <p><strong>Status:</strong> {{ ucfirst($series->status) }}</p>
                         <p><strong>Rating:</strong> {{ $series->rating }}/5</p>
                         <p><strong>Description:</strong> {{ $series->description }}</p>
@@ -77,7 +78,7 @@
                             <td class="text-left">
                                 <div>Duration: {{ $episode->duration_seconds }}s</div>
                                 <div>Likes: {{ $episode->likes }}</div>
-                                <div>Type: {{ $episode->is_locked ? 'Locked' : 'Free' }}</div>
+                                <div>Type: {{ $episode->is_premium ? 'Premium' : 'Free' }}</div>
                                 <div>Price: {{ $episode->coin_price }} coins</div>
                             </td>
                             <td class="text-left">

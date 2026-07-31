@@ -5,23 +5,33 @@ namespace App\Http\Controllers\Admin\Reels;
 use App\Http\Controllers\Controller;
 use App\Models\Reels\DramaSeries;
 use App\Models\Reels\Episode;
+use App\Services\ReelSeriesPricingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class EpisodeController extends Controller
 {
+    public function __construct(private ReelSeriesPricingService $pricingService)
+    {
+    }
+
     public function create(DramaSeries $series): View
     {
+        $nextEpisodeNumber = (int) (($series->episodes()->max('number') ?? 0) + 1);
+        $shouldBePremium = $this->shouldEpisodeBePremium($series, $nextEpisodeNumber);
+
         return view('admin.reels.episodes.create', [
             'series' => $series,
             'episode' => new Episode([
                 'series_id' => $series->id,
-                'number' => ($series->episodes()->max('number') ?? 0) + 1,
+                'number' => $nextEpisodeNumber,
                 'duration_seconds' => 60,
                 'published_at' => now(),
-                'coin_price' => 0,
+                'coin_price' => $shouldBePremium ? (int) $series->coin_price : 0,
+                'is_premium' => $shouldBePremium,
                 'show_like_button' => true,
                 'show_watchlist_button' => true,
                 'show_share_button' => true,
@@ -39,9 +49,10 @@ class EpisodeController extends Controller
         $data = $this->applyVisibilityFlags($request, $data);
         $data['thumbnail_url'] = $this->mediaPath($request, 'thumbnail_file', $data['thumbnail_url'] ?? $series->poster_url, 'posters');
         $data['video_url'] = $this->mediaPath($request, 'video_file', $data['video_url'] ?? null, 'videos');
-
-        $series->episodes()->create($data);
-        $series->update(['total_episodes' => $series->episodes()->count()]);
+        DB::transaction(function () use ($series, $data): void {
+            $series->episodes()->create($data);
+            $this->pricingService->syncSeriesEpisodes($series);
+        });
 
         return redirect()
             ->route('series.show', $series)
@@ -68,8 +79,10 @@ class EpisodeController extends Controller
         $data = $this->applyVisibilityFlags($request, $data);
         $data['thumbnail_url'] = $this->mediaPath($request, 'thumbnail_file', $data['thumbnail_url'] ?? $episode->thumbnail_url, 'posters');
         $data['video_url'] = $this->mediaPath($request, 'video_file', $data['video_url'] ?? $episode->video_url, 'videos');
-
-        $episode->update($data);
+        DB::transaction(function () use ($episode, $series, $data): void {
+            $episode->update($data);
+            $this->pricingService->syncSeriesEpisodes($series);
+        });
 
         return redirect()
             ->route('series.show', $series)
@@ -80,8 +93,10 @@ class EpisodeController extends Controller
     {
         abort_unless($episode->series_id === $series->id, 404);
 
-        $episode->delete();
-        $series->update(['total_episodes' => $series->episodes()->count()]);
+        DB::transaction(function () use ($episode, $series): void {
+            $episode->delete();
+            $this->pricingService->syncSeriesEpisodes($series);
+        });
 
         return redirect()
             ->route('series.show', $series)
@@ -133,5 +148,14 @@ class EpisodeController extends Controller
         }
 
         return Storage::disk('public')->url($request->file($fileKey)->store($folder, 'public'));
+    }
+
+    private function shouldEpisodeBePremium(DramaSeries $series, int $episodeNumber): bool
+    {
+        if (! $series->is_premium || (int) $series->coin_price <= 0) {
+            return false;
+        }
+
+        return $episodeNumber > (int) $series->number_of_free_episodes;
     }
 }

@@ -20,6 +20,7 @@ class Episode extends Model
         'duration_seconds',
         'is_locked',
         'coin_price',
+        'is_premium',
         'show_like_button',
         'show_watchlist_button',
         'show_share_button',
@@ -35,6 +36,7 @@ class Episode extends Model
             'duration_seconds' => 'integer',
             'is_locked' => 'boolean',
             'coin_price' => 'integer',
+            'is_premium' => 'boolean',
             'show_like_button' => 'boolean',
             'show_watchlist_button' => 'boolean',
             'show_share_button' => 'boolean',
@@ -52,5 +54,10 @@ class Episode extends Model
     public function purchases(): HasMany
     {
         return $this->hasMany(UserEpisodePurchase::class, 'episode_id');
+    }
+
+    public function userLikes(): HasMany
+    {
+        return $this->hasMany(UserEpisodeLike::class, 'episode_id');
     }
 }

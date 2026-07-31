@@ -45,10 +45,13 @@
                 <label for="coin_price">Episode Coin Price</label>
                 <input id="coin_price" name="coin_price" class="form-control" type="number" min="0" value="{{ old('coin_price', $episode->coin_price ?? 0) }}">
             </div>
-            <div class="col-sm-6 mb-3 d-flex align-items-center">
-                <div class="form-check mt-4">
-                    <input type="checkbox" name="is_locked" value="1" class="form-check-input" id="is_locked" @checked(old('is_locked', $episode->is_locked))>
-                    <label class="form-check-label" for="is_locked">Lock this episode for premium users</label>
+            <div class="col-sm-6 mb-3">
+                <label class="d-block">Access</label>
+                <div class="border rounded px-3 py-2 h-100 d-flex align-items-center">
+                    <div class="form-check mb-0">
+                        <input type="checkbox" name="is_locked" value="1" class="form-check-input" id="is_locked" @checked(old('is_locked', $episode->is_locked))>
+                        <label class="form-check-label" for="is_locked">Lock this episode for premium users</label>
+                    </div>
                 </div>
             </div>
             <div class="col-sm-12 mb-3">

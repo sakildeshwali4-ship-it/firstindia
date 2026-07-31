@@ -9,6 +9,10 @@ class DramaSeries extends Model
 {
     protected $table = 'drama_series';
 
+    protected $hidden = [
+        'number_of_free_episodes',
+    ];
+
     protected $fillable = [
         'title',
         'slug',
@@ -21,6 +25,7 @@ class DramaSeries extends Model
         'total_episodes',
         'is_premium',
         'coin_price',
+        'number_of_free_episodes',
         'status',
     ];
 
@@ -31,6 +36,7 @@ class DramaSeries extends Model
             'total_episodes' => 'integer',
             'is_premium' => 'boolean',
             'coin_price' => 'integer',
+            'number_of_free_episodes' => 'integer',
         ];
     }
 

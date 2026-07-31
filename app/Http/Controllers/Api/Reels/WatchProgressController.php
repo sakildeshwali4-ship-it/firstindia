@@ -38,7 +38,7 @@ class WatchProgressController extends Controller
         $user = Users::query()->findOrFail($data['user_id']);
         $episode = Episode::query()->findOrFail($data['episode_id']);
 
-        if ((bool) $episode->is_locked && (int) $episode->coin_price > 0) {
+        if ((bool) $episode->is_premium && (int) $episode->coin_price > 0) {
             $alreadyPurchased = UserEpisodePurchase::query()
                 ->where('user_id', $user->id)
                 ->where('episode_id', $episode->id)

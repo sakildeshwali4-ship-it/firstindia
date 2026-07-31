@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Reels\UserEpisodePurchase;
+use App\Models\Reels\UserEpisodeLike;
 use App\Models\Reels\WalletTransaction;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Notifications\Notifiable;
@@ -43,5 +44,10 @@ class Users extends Authenticatable
     public function episodePurchases(): HasMany
     {
         return $this->hasMany(UserEpisodePurchase::class, 'user_id');
+    }
+
+    public function episodeLikes(): HasMany
+    {
+        return $this->hasMany(UserEpisodeLike::class, 'user_id');
     }
 }

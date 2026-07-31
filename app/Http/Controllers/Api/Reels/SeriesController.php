@@ -4,11 +4,16 @@ namespace App\Http\Controllers\Api\Reels;
 
 use App\Http\Controllers\Controller;
 use App\Models\Reels\DramaSeries;
-use Illuminate\Http\Request; 
+use App\Services\ReelsWalletService;
+use Illuminate\Http\Request;
 use Validator;
 
 class SeriesController extends Controller
 {
+    public function __construct(private ReelsWalletService $walletService)
+    {
+    }
+
     public function index(Request $request): array
     {
         $validation = Validator::make($request->all(),[
@@ -34,10 +39,28 @@ class SeriesController extends Controller
         return $series->load('episodes');
     }
 
-    public function episodes(DramaSeries $series): array
+    public function episodes(Request $request, DramaSeries $series): array
     {
+        $validation = Validator::make($request->all(),[
+            'user_id' => 'required|exists:user,id',
+        ]);
+
+        if ($validation->fails()) {
+            $data['status'] = 400;
+            $data['message'] = __('api_msg.please_enter_required_fields');
+            return $data;
+        }
+
+        $episodes = $series->episodes()->get();
+
+        $episodes->each(function ($episode) use ($request): void {
+            $hasAccess = $this->walletService->hasEpisodeAccess((int) $request->user_id, $episode);
+            $episode->setAttribute('is_locked', $hasAccess ? false : ((bool) $episode->is_premium && (int) $episode->coin_price > 0));
+            $episode->setAttribute('is_premium', $hasAccess ? false : (bool) $episode->is_premium);
+        });
+
         return [
-            'data' => $series->episodes()->get(),
+            'data' => $episodes,
         ];
     }
 

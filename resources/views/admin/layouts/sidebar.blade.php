@@ -182,38 +182,44 @@
 
         <?php
         if(Auth::user()->id == 3) { ?>
+            @php
+                $seriesMenu = request()->is('admin/series*') || request()->is('admin/wallet*');
+                $addSeriesActive = request()->is('admin/series/create');
+            @endphp
 
-            <li class="dropdown {{ request()->is('admin/web-series*') ? 'active' : '' }}{{ request()->is('admin/seasons*') ? 'active' : '' }}{{ request()->is('admin/episodes*') ? 'active' : '' }}">
-            <a class="dropdown-toggle" id="dropdownMenuClickable" data-toggle="dropdown" aria-haspopup="true"
-                aria-expanded="false">
-                <i class="fa-solid fa-satellite-dish fa-2xl menu-icon"></i>
-                <span>Reel Drama</span>
-            </a>
-            <ul class="dropdown-menu side-submenu {{ request()->is('admin/web-series*') ? 'show' : '' }}{{ request()->is('admin/seasons*') ? 'show' : '' }}{{ request()->is('admin/episodes*') ? 'show' : '' }}"
-                aria-labelledby="dropdownMenuClickable"> 
-                <li class="side_line {{ request()->is('admin/web-series*') ? 'active' : '' }}">
-                    <a href="{{ route('series.index') }}" class="dropdown-item">
-                        <i class="fa-solid fa-tower-broadcast fa-2xl submenu-icon"></i>
-                        <span>Webseries</span>
-                    </a>
-                </li>
-                <li class="side_line {{ request()->is('admin/web-series*') ? 'active' : '' }}">
-                   <a href="{{ route('wallet.edit') }}" class="dropdown-item">
-                    <i class="fa-solid fa-tower-broadcast fa-2xl submenu-icon"></i>
-                        <span>Wallet</span>
-                    </a>
-                   </a>
-                </li>
-                
-                <li class="side_line {{ request()->is('admin/web-series*') ? 'active' : '' }}">
-                    <a href="{{ route('series.create') }}"  class="dropdown-item">
-                        <i class="fa-solid fa-tower-broadcast fa-2xl submenu-icon"></i>
-                        <span>Add Webseries</span>
-                    </a>
-                </li>
-                     
-            </ul>
-        </li>
+            <li class="dropdown {{ $seriesMenu ? 'active' : '' }}">
+                <a class="dropdown-toggle" id="dropdownMenuClickable" data-toggle="dropdown"
+                    aria-haspopup="true" aria-expanded="false">
+                    <i class="fa-solid fa-satellite-dish fa-2xl menu-icon"></i>
+                    <span>Reel Drama</span>
+                </a>
+
+                <ul class="dropdown-menu side-submenu {{ $seriesMenu ? 'show' : '' }}"
+                    aria-labelledby="dropdownMenuClickable">
+
+                    <li class="side_line {{ request()->is('admin/series') || request()->is('admin/series/*') && !request()->is('admin/series/create') ? 'active' : '' }}">
+                        <a href="{{ route('series.index') }}" class="dropdown-item">
+                            <i class="fa-solid fa-tower-broadcast fa-2xl submenu-icon"></i>
+                            <span>Webseries</span>
+                        </a>
+                    </li>
+
+                    <li class="side_line {{ request()->is('admin/wallet*') ? 'active' : '' }}">
+                        <a href="{{ route('wallet.edit') }}" class="dropdown-item">
+                            <i class="fa-solid fa-tower-broadcast fa-2xl submenu-icon"></i>
+                            <span>Wallet</span>
+                        </a>
+                    </li>
+
+                    <li class="side_line {{ $addSeriesActive ? 'active' : '' }}">
+                        <a href="{{ route('series.create') }}" class="dropdown-item">
+                            <i class="fa-solid fa-tower-broadcast fa-2xl submenu-icon"></i>
+                            <span>Add Webseries</span>
+                        </a>
+                    </li>
+
+                </ul>
+            </li>
 
              <li class="side_line {{ request()->is('admin/ads*') ? 'active' : '' }}">
             <a href="{{ route('ads') }}">

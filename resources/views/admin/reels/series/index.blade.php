@@ -3,6 +3,7 @@
 @section('title', 'Webseries')
 
 @section('content')
+    @php($fallbackImage = asset('images/app/logo.png'))
     <div class="body-content">
         <h1 class="page-title-sm">@yield('title')</h1>
 
@@ -47,11 +48,12 @@
                         <tr>
                             <td>{{ $seriesList->firstItem() + $index }}</td>
                             <td>
-                                @if ($series->poster_url)
-                                    <img src="{{ $series->poster_url }}" alt="{{ $series->title }}" style="width: 60px; height: 90px; object-fit: cover; border-radius: 6px;">
-                                @else
-                                    <span>-</span>
-                                @endif
+                                <img
+                                    src="{{ $series->poster_url ?: $fallbackImage }}"
+                                    alt="{{ $series->title }}"
+                                    style="width: 60px; height: 90px; object-fit: cover; border-radius: 6px;"
+                                    onerror="this.onerror=null;this.src='{{ $fallbackImage }}';"
+                                >
                             </td>
                             <td class="text-left">
                                 <strong>{{ $series->title }}</strong><br>

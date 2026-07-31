@@ -30,6 +30,12 @@ class FeedController extends Controller
         
         $episodes = Episode::query()
             ->with('series')
+            ->where(function ($query) use ($request) {
+                $query->where('is_premium', false)
+                    ->orWhereHas('purchases', function ($purchaseQuery) use ($request) {
+                        $purchaseQuery->where('user_id', $request->user_id);
+                    });
+            })
             ->inRandomOrder()
             ->take(40)
             ->get();
@@ -43,6 +49,7 @@ class FeedController extends Controller
         $episodes->each(function (Episode $episode) use ($request): void {
             $hasAccess = $this->walletService->hasEpisodeAccess((int) $request->user_id, $episode);
 
+            $episode->setAttribute('is_locked', $hasAccess ? false : ((bool) $episode->is_premium && (int) $episode->coin_price > 0));
             $episode->setAttribute('is_premium', $hasAccess ? false : (bool) $episode->is_premium);
         });
 

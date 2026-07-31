@@ -49,7 +49,7 @@
                 <label for="status">Status</label>
                 <select id="status" name="status" class="form-control" required>
                     @foreach (['draft', 'published', 'archived'] as $status)
-                        <option value="{{ $status }}" @selected(old('status', $series->status ?? 'published') === $status)>{{ ucfirst($status) }}</option>
+                        <option value="{{ $status }}" {{ old('status', $series->status ?? 'published') === $status ? 'selected' : '' }}>{{ ucfirst($status) }}</option>
                     @endforeach
                 </select>
             </div>
@@ -63,7 +63,7 @@
             </div>
             <div class="col-sm-12 mb-3">
                 <div class="form-check">
-                    <input type="checkbox" name="is_premium" value="1" class="form-check-input" id="is_premium" @checked(old('is_premium', $series->is_premium))>
+                    <input type="checkbox" name="is_premium" value="1" class="form-check-input" id="is_premium" {{ old('is_premium', $series->is_premium) ? 'checked' : '' }}>
                     <label class="form-check-label" for="is_premium">Premium webseries</label>
                 </div>
             </div>

@@ -3,6 +3,7 @@
 @section('title', $series->title)
 
 @section('content')
+    @php($fallbackImage = asset('images/app/logo.png'))
     <div class="body-content">
         <h1 class="page-title-sm">{{ $series->title }}</h1>
 
@@ -24,9 +25,12 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-sm-3">
-                        @if ($series->poster_url)
-                            <img src="{{ $series->poster_url }}" alt="{{ $series->title }}" style="width: 100%; max-width: 220px; border-radius: 8px;">
-                        @endif
+                        <img
+                            src="{{ $series->poster_url ?: $fallbackImage }}"
+                            alt="{{ $series->title }}"
+                            style="width: 100%; max-width: 220px; border-radius: 8px; object-fit: cover;"
+                            onerror="this.onerror=null;this.src='{{ $fallbackImage }}';"
+                        >
                     </div>
                     <div class="col-sm-9">
                         <p><strong>Genre:</strong> {{ $series->genre }}</p>
@@ -65,11 +69,12 @@
                         <tr>
                             <td>{{ $episode->number }}</td>
                             <td>
-                                @if ($episode->thumbnail_url)
-                                    <img src="{{ $episode->thumbnail_url }}" alt="{{ $episode->title }}" style="width: 70px; height: 90px; object-fit: cover; border-radius: 6px;">
-                                @else
-                                    <span>-</span>
-                                @endif
+                                <img
+                                    src="{{ $episode->thumbnail_url ?: $fallbackImage }}"
+                                    alt="{{ $episode->title }}"
+                                    style="width: 70px; height: 90px; object-fit: cover; border-radius: 6px;"
+                                    onerror="this.onerror=null;this.src='{{ $fallbackImage }}';"
+                                >
                             </td>
                             <td class="text-left">
                                 <strong>{{ $episode->title }}</strong><br>
@@ -108,4 +113,9 @@
             </table>
         </div>
     </div>
+    <style>
+        p{
+            color: #fff;
+        }
+    </style>
 @endsection

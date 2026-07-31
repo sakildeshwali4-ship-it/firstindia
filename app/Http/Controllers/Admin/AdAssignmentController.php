@@ -7,6 +7,7 @@ use App\Models\Ads;
 use App\Models\AdAssignment;
 use App\Models\LiveTv;
 use App\Models\Video;
+use App\Services\AdsSocketNotifier;
 use Exception;
 use Illuminate\Http\Request;
 use Validator;
@@ -95,6 +96,10 @@ class AdAssignmentController extends Controller
             $this->fillAssignment($assignment, $request);
 
             if ($assignment->save()) {
+                app(AdsSocketNotifier::class)->notifyTargets([[
+                    'type' => $assignment->assignable_type,
+                    'id' => (int) $assignment->assignable_id,
+                ]], 'admin_updated_assignment');
                 return response()->json(array('status' => 200, 'success' => __('Label.Data Add Successfully')));
             } else {
                 return response()->json(array('status' => 400, 'errors' => __('Label.Data Not Add')));
@@ -133,9 +138,19 @@ class AdAssignmentController extends Controller
 
             $assignment = AdAssignment::where('id', $request->id)->first();
             if (isset($assignment->id)) {
+                $targets = [[
+                    'type' => $assignment->assignable_type,
+                    'id' => (int) $assignment->assignable_id,
+                ]];
+
                 $this->fillAssignment($assignment, $request);
 
                 if ($assignment->save()) {
+                    $targets[] = [
+                        'type' => $assignment->assignable_type,
+                        'id' => (int) $assignment->assignable_id,
+                    ];
+                    app(AdsSocketNotifier::class)->notifyTargets($targets, 'admin_updated_assignment');
                     return response()->json(array('status' => 200, 'success' => __('Label.Data Edit Successfully')));
                 } else {
                     return response()->json(array('status' => 400, 'errors' => __('Label.Data Not Updated')));
@@ -152,7 +167,16 @@ class AdAssignmentController extends Controller
     {
         try {
             $assignment = AdAssignment::where('id', $id)->first();
+            $targets = [];
+            if ($assignment) {
+                $targets[] = [
+                    'type' => $assignment->assignable_type,
+                    'id' => (int) $assignment->assignable_id,
+                ];
+            }
+
             if ($assignment && $assignment->delete()) {
+                app(AdsSocketNotifier::class)->notifyTargets($targets, 'admin_deleted_assignment');
                 return redirect()->route('adAssignments')->with('success', __('Label.Data Delete Successfully'));
             }
 
@@ -219,6 +243,11 @@ class AdAssignmentController extends Controller
                 $assignment->save();
             }
 
+            app(AdsSocketNotifier::class)->notifyTargets([[
+                'type' => 'video',
+                'id' => (int) $request->video_id,
+            ]], 'admin_updated_assignment');
+
             return response()->json(array('status' => 200, 'success' => __('Label.Data Edit Successfully')));
         } catch (Exception $e) {
             return response()->json(array('status' => 400, 'errors' => $e->getMessage()));
@@ -281,6 +310,11 @@ class AdAssignmentController extends Controller
                 $assignment->active = 1;
                 $assignment->save();
             }
+
+            app(AdsSocketNotifier::class)->notifyTargets([[
+                'type' => 'live_tv',
+                'id' => (int) $request->live_tv_id,
+            ]], 'admin_updated_assignment');
 
             return response()->json(array('status' => 200, 'success' => __('Label.Data Edit Successfully')));
         } catch (Exception $e) {

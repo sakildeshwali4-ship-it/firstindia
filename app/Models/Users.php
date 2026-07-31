@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Models\Reels\UserEpisodePurchase;
+use App\Models\Reels\WalletTransaction;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 
@@ -26,8 +29,19 @@ class Users extends Authenticatable
         'image' => 'string',
         'type' => 'integer',
         'status' => 'integer',
+        'wallet' => 'integer',
         'api_token' => 'string',
         'email_verify_token' => 'string',
         'is_email_verify' => 'string',
     ];
+
+    public function walletTransactions(): HasMany
+    {
+        return $this->hasMany(WalletTransaction::class, 'user_id');
+    }
+
+    public function episodePurchases(): HasMany
+    {
+        return $this->hasMany(UserEpisodePurchase::class, 'user_id');
+    }
 }

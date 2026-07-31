@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App;
 use App\Http\Controllers\Controller;
 use App\Models\Ads;
+use App\Models\AdAssignment;
+use App\Services\AdsSocketNotifier;
 use Exception;
 use Illuminate\Http\Request;
 use Validator;
@@ -38,6 +40,9 @@ class AdsController extends Controller
 
                 return DataTables()::of($data->latest()->get())
                     ->addIndexColumn()
+                    ->editColumn('start_after_seconds', function ($row) {
+                        return $row->start_after_seconds_display;
+                    })
                     ->addColumn('active_badge', function ($row) {
                         if ($row->active == 1) {
                             return '<span class="badge badge-success">Active</span>';
@@ -82,6 +87,7 @@ class AdsController extends Controller
             $this->fillAd($ad, $request);
 
             if ($ad->save()) {
+                app(AdsSocketNotifier::class)->notifyAdAssignments($ad->id, 'admin_created_ad');
                 return response()->json(array('status' => 200, 'success' => __('Label.Data Add Successfully')));
             } else {
                 return response()->json(array('status' => 400, 'errors' => __('Label.Data Not Add')));
@@ -116,9 +122,19 @@ class AdsController extends Controller
 
             $ad = Ads::where('id', $request->id)->first();
             if (isset($ad->id)) {
+                $targets = AdAssignment::where('ad_id', $ad->id)
+                    ->get(['assignable_type', 'assignable_id'])
+                    ->map(function ($assignment) {
+                        return [
+                            'type' => $assignment->assignable_type,
+                            'id' => (int) $assignment->assignable_id,
+                        ];
+                    });
+
                 $this->fillAd($ad, $request);
 
                 if ($ad->save()) {
+                    app(AdsSocketNotifier::class)->notifyTargets($targets, 'admin_updated_ad');
                     return response()->json(array('status' => 200, 'success' => __('Label.Data Edit Successfully')));
                 } else {
                     return response()->json(array('status' => 400, 'errors' => __('Label.Data Not Updated')));
@@ -135,7 +151,20 @@ class AdsController extends Controller
     {
         try {
             $ad = Ads::where('id', $id)->first();
+            $targets = collect();
+            if ($ad) {
+                $targets = AdAssignment::where('ad_id', $ad->id)
+                    ->get(['assignable_type', 'assignable_id'])
+                    ->map(function ($assignment) {
+                        return [
+                            'type' => $assignment->assignable_type,
+                            'id' => (int) $assignment->assignable_id,
+                        ];
+                    });
+            }
+
             if ($ad && $ad->delete()) {
+                app(AdsSocketNotifier::class)->notifyTargets($targets, 'admin_deleted_ad');
                 return redirect()->route('ads')->with('success', __('Label.Data Delete Successfully'));
             }
 
@@ -154,7 +183,7 @@ class AdsController extends Controller
             'media_type' => 'required|in:image,video',
             'click_url' => 'nullable', 
             'media_image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
-            'start_after_seconds' => 'required|integer|min:0',
+            'start_after_seconds' => ['required', 'regex:/^\s*\d+\s*(,\s*\d+\s*)*$/'],
             'repeat_every_seconds' => 'required|integer|min:0',
             'duration_seconds' => 'required|integer|min:0',
             'skippable_after_seconds' => 'required|integer|min:0',
@@ -172,7 +201,7 @@ class AdsController extends Controller
         $ad->media_url = $request->media_url ?: null;
         $ad->media_type = $request->media_type;
         $ad->click_url = $request->click_url ?: null;
-        $ad->start_after_seconds = $request->start_after_seconds;
+        $ad->start_after_seconds = json_encode(Ads::normalizeStartAfterSeconds($request->start_after_seconds));
         $ad->repeat_every_seconds = $request->repeat_every_seconds;
         $ad->duration_seconds = $request->duration_seconds;
         $ad->skippable_after_seconds = $request->skippable_after_seconds;

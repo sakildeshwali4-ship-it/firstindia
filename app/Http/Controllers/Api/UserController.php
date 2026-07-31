@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Reels\CoinPackage;
+use App\Models\Reels\WalletTransaction;
 use App\Models\Users;
 use App\Models\TV_Login;
 use App\Models\Transction;
@@ -17,6 +19,7 @@ use Validator;
 use Exception;
 use Illuminate\Support\Facades\Mail;
 use App\Helpers\NotificationHelper;
+use App\Services\ReelsWalletService;
 
 class UserController extends Controller
 {
@@ -75,6 +78,7 @@ class UserController extends Controller
                 'image' => "",
                 'type' => $type,
                 'status' => 1,
+                'wallet' => 0,
                 'expiry_date' => "2024-05-31", //temp expiry
                 'api_token' => "",
                 'email_verify_token' => "",
@@ -236,6 +240,7 @@ class UserController extends Controller
                         'image' => $imageName,
                         'type' => $type,
                         'status' => 1,
+                        'wallet' => 0,
                         'expiry_date' => "2024-05-31", //temp expiry
                         'api_token' => "",
                         'email_verify_token' => "",
@@ -288,6 +293,7 @@ class UserController extends Controller
                         'image' => "",
                         'type' => $type,
                         'status' => 1,
+                        'wallet' => 0,
                         'expiry_date' => "2024-05-31", //temp expiry
                         'api_token' => "",
                         'email_verify_token' => "",
@@ -381,6 +387,7 @@ class UserController extends Controller
 					$Data['is_password'] = 1;
 				}
                 $Data['is_buy'] = IsBuyByUser($id);
+                $Data['wallet'] = (int) ($Data['wallet'] ?? 0);
 
                 return APIResponse(200, __('api_msg.get_record_successfully'), array($Data));
             } else {
@@ -808,7 +815,14 @@ class UserController extends Controller
 					$retUrl = 'https://www.firstindiaplus.com/';
 					$paypalAmount = 1.00;
 				}
-			} else if($request['order_type'] == 'audition') {
+			} else if($request['order_type'] == 'coin_package') {
+                $coinPackage = CoinPackage::where('id', $request['package_id'])->where('is_active', '1')->first();
+                if (empty($coinPackage)) {
+                    return APIResponse(400, 'Please enter right wallet package id.');
+                }
+                $retUrl = 'https://www.firstindiaplus.com/';
+                $paypalAmount = (float) $coinPackage->price_rupees;
+            } else if($request['order_type'] == 'audition') {
 				$Adata = AuditionApplication::where('id', $request['audition_id'])->first();
 				if (empty($Adata)) {
 					return APIResponse(400, __('Application not found!'));
@@ -821,8 +835,8 @@ class UserController extends Controller
 			$transaction = new Transction();
             $transaction->user_id = isset($request->customer_id) ? $request->customer_id : 0;
             $transaction->payment_id = $uniqueOrderId;
-            $transaction->package_id = $request['package_id'];
-            $transaction->audition_id = $request['audition_id'];
+            $transaction->package_id = $request['package_id'] ?? 0;
+            $transaction->audition_id = $request['audition_id'] ?? null;
             $transaction->live_grand_finale_id = $request['live_grand_finale_id'] ? $request['live_grand_finale_id'] : 0;
             $transaction->order_type = $request['order_type'];
 			$transaction->payment_option_id = $request['payment_option_id'];
@@ -1043,11 +1057,9 @@ class UserController extends Controller
 				if($payment_response[0]['payment_status'] == 'SUCCESS') {
 					$payment_status_numeric = 1;
 					$user_data = Users::where('id', $transaction->user_id)->first();
-					if($transaction->order_type == 'package') {
+					if($transaction->order_type == 'package' || $transaction->order_type == 'coin_package') {
 						if (isset($user_data)) {
-							$user_data->expiry_date = $transaction->expiry_date;
-							$user_data->save();
-							Send_Mail(2, $user_data->email);
+							$this->handleSuccessfulOrder($transaction, $user_data);
 						}
 					} else if ($transaction->order_type == 'audition') {
 						$auditionApplication = AuditionApplication::findOrFail($transaction->audition_id);
@@ -1114,11 +1126,9 @@ class UserController extends Controller
 				if($payment_response['items'][0]['status'] == 'captured') {
 					$payment_status_numeric = 1;
 					$user_data = Users::where('id', $transaction->user_id)->first();
-					if($transaction->order_type == 'package') {
+					if($transaction->order_type == 'package' || $transaction->order_type == 'coin_package') {
 						if (isset($user_data)) {
-							$user_data->expiry_date = $transaction->expiry_date;
-							$user_data->save();
-							Send_Mail(2, $user_data->email);
+							$this->handleSuccessfulOrder($transaction, $user_data);
 						}
 					} else if ($transaction->order_type == 'audition') {
 						$auditionApplication = AuditionApplication::findOrFail($transaction->audition_id);
@@ -1167,11 +1177,9 @@ class UserController extends Controller
 				if($payment_response['status'] == 'COMPLETED') {
 					$payment_status_numeric = 1;
 					$user_data = Users::where('id', $transaction->user_id)->first();
-					if($transaction->order_type == 'package') {
+					if($transaction->order_type == 'package' || $transaction->order_type == 'coin_package') {
 						if (isset($user_data)) {
-							$user_data->expiry_date = $transaction->expiry_date;
-							$user_data->save();
-							Send_Mail(2, $user_data->email);
+							$this->handleSuccessfulOrder($transaction, $user_data);
 						}
 					} else if ($transaction->order_type == 'audition') {
 						$auditionApplication = AuditionApplication::findOrFail($transaction->audition_id);
@@ -1213,6 +1221,36 @@ class UserController extends Controller
 		}
 		return $payment_status_numeric;
 	}
+
+    private function handleSuccessfulOrder(Transction $transaction, Users $user): void
+    {
+        if ($transaction->order_type === 'package') {
+            $user->expiry_date = $transaction->expiry_date;
+            $user->save();
+            Send_Mail(2, $user->email);
+
+            return;
+        }
+
+        if ($transaction->order_type === 'coin_package') {
+            $package = CoinPackage::query()->find($transaction->package_id);
+
+            if (! $package) {
+                return;
+            }
+
+            $alreadyCredited = WalletTransaction::query()
+                ->where('user_id', $user->id)
+                ->where('coin_package_id', $package->id)
+                ->where('payment_id', $transaction->payment_id)
+                ->where('source', 'recharge')
+                ->exists();
+
+            if (! $alreadyCredited) {
+                app(ReelsWalletService::class)->creditFromPackage($user, $package, $transaction->payment_id);
+            }
+        }
+    }
 	
 	/*public function create_razorpay_order(Request $request) {
         try {

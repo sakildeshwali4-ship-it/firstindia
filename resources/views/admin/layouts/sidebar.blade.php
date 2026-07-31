@@ -151,7 +151,7 @@
                 <span>{{__('Event')}}</span>
             </a>
         </li>
-<li class="dropdown {{ request()->is('admin/web-series*') ? 'active' : '' }}{{ request()->is('admin/seasons*') ? 'active' : '' }}{{ request()->is('admin/episodes*') ? 'active' : '' }}">
+        <li class="dropdown {{ request()->is('admin/web-series*') ? 'active' : '' }}{{ request()->is('admin/seasons*') ? 'active' : '' }}{{ request()->is('admin/episodes*') ? 'active' : '' }}">
             <a class="dropdown-toggle" id="dropdownMenuClickable" data-toggle="dropdown" aria-haspopup="true"
                 aria-expanded="false">
                 <i class="fa-solid fa-satellite-dish fa-2xl menu-icon"></i>
@@ -182,13 +182,46 @@
 
         <?php
         if(Auth::user()->id == 3) { ?>
+
+            <li class="dropdown {{ request()->is('admin/web-series*') ? 'active' : '' }}{{ request()->is('admin/seasons*') ? 'active' : '' }}{{ request()->is('admin/episodes*') ? 'active' : '' }}">
+            <a class="dropdown-toggle" id="dropdownMenuClickable" data-toggle="dropdown" aria-haspopup="true"
+                aria-expanded="false">
+                <i class="fa-solid fa-satellite-dish fa-2xl menu-icon"></i>
+                <span>Reel Drama</span>
+            </a>
+            <ul class="dropdown-menu side-submenu {{ request()->is('admin/web-series*') ? 'show' : '' }}{{ request()->is('admin/seasons*') ? 'show' : '' }}{{ request()->is('admin/episodes*') ? 'show' : '' }}"
+                aria-labelledby="dropdownMenuClickable"> 
+                <li class="side_line {{ request()->is('admin/web-series*') ? 'active' : '' }}">
+                    <a href="{{ route('series.index') }}" class="dropdown-item">
+                        <i class="fa-solid fa-tower-broadcast fa-2xl submenu-icon"></i>
+                        <span>Webseries</span>
+                    </a>
+                </li>
+                <li class="side_line {{ request()->is('admin/web-series*') ? 'active' : '' }}">
+                   <a href="{{ route('wallet.edit') }}" class="dropdown-item">
+                    <i class="fa-solid fa-tower-broadcast fa-2xl submenu-icon"></i>
+                        <span>Wallet</span>
+                    </a>
+                   </a>
+                </li>
+                
+                <li class="side_line {{ request()->is('admin/web-series*') ? 'active' : '' }}">
+                    <a href="{{ route('series.create') }}"  class="dropdown-item">
+                        <i class="fa-solid fa-tower-broadcast fa-2xl submenu-icon"></i>
+                        <span>Add Webseries</span>
+                    </a>
+                </li>
+                     
+            </ul>
+        </li>
+
              <li class="side_line {{ request()->is('admin/ads*') ? 'active' : '' }}">
             <a href="{{ route('ads') }}">
                 <i class="fa-solid fa-rectangle-ad fa-2xl menu-icon"></i>
                 <span>Ads</span>
             </a>
         </li>
-<li class="side_line {{ request()->is('admin/option*') ? 'active' : '' }}">
+        <li class="side_line {{ request()->is('admin/option*') ? 'active' : '' }}">
             <a href="{{ route('option.index') }}">
                 <i class="fa-solid fa-video fa-2xl menu-icon"></i>
                 <span>Option Data</span>

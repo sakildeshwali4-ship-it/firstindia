@@ -7,6 +7,11 @@ use App\Http\Controllers\Api\AuditionController;
 use App\Http\Controllers\Api\EpisodeController;
 use App\Http\Controllers\Api\WebSeriesController;
 use App\Http\Controllers\Api\ReactionController;
+use App\Http\Controllers\Api\Reels\FeedController;
+use App\Http\Controllers\Api\Reels\SearchController;
+use App\Http\Controllers\Api\Reels\WalletController;
+use App\Http\Controllers\Api\Reels\SeriesController;
+use App\Http\Controllers\Api\Reels\WatchProgressController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -133,14 +138,26 @@ Route::get("search", [WebSeriesController::class, "search"]);
 Route::post("episode/watch-progress", [EpisodeController::class, "watchProgress"]);
 
 
-
 Route::get('option-data', [HomeController::class, 'optionData']);
 Route::get('live-tv-urls', [HomeController::class, 'liveTvUrls']);
 
 Route::post('get-live-tv-urls', [HomeController::class, 'getLiveTvUrls']);
-
-
-
+ 
+Route::post('/feed', 'Api\Reels\FeedController@index'); 
+Route::post('/search', 'Api\Reels\SearchController@index');
+Route::post('/wallet/packages', 'Api\Reels\WalletController@packages');
+Route::post('/wallet/razorpay/order', 'Api\Reels\WalletController@createRazorpayOrder');
+Route::post('/wallet/razorpay/verify', 'Api\Reels\WalletController@verifyRazorpayRecharge');
+Route::post('/wallet/recharge', 'Api\Reels\WalletController@recharge');
+Route::post('/wallet/balance', 'Api\Reels\WalletController@balance');
+Route::post('/wallet/history', 'Api\Reels\WalletController@history');
+Route::post('/wallet/unlock-reel', 'Api\Reels\WalletController@unlockReel');
+Route::post('/series', 'Api\Reels\SeriesController@index');
+Route::post('/series/{series}', 'Api\Reels\SeriesController@show');
+Route::post('/series/{series}/pricing', 'Api\Reels\SeriesController@pricing');
+Route::post('/series/{series}/episodes', 'Api\Reels\SeriesController@episodes');
+Route::post('/episodes/{episode}/like', 'Api\Reels\FeedController@like');
+Route::post('/watch-progress', 'Api\Reels\WatchProgressController@store');
 
 
 

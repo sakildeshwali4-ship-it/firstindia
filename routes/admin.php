@@ -4,7 +4,6 @@ use Illuminate\Support\Facades\Route;
 use App\Jobs\SendENewsNotificationJob; 
 use App\Jobs\SendGlobalPushJob;
 use Illuminate\Support\Facades\Log;
-use App\Http\Controllers\Admin\LiveTvController;
 
 /*
 |--------------------------------------------------------------------------
@@ -413,23 +412,23 @@ Route::group(['namespace' => 'Admin', 'prefix' => 'admin', 'middleware' => 'auth
     
     Route::prefix('admin/livetv')->group(function () {
 
-        Route::get('/', [LiveTvController::class, 'index'])->name('livetv.index');
-        Route::get('/data', [LiveTvController::class, 'liveTvData'])->name('livetv.data');
+        Route::get('/', 'LiveTvController@index')->name('livetv.index');
+        Route::get('/data', 'LiveTvController@liveTvData')->name('livetv.data');
 
-        Route::get('/create', [LiveTvController::class, 'create'])->name('livetv.create');
-        Route::post('/store', [LiveTvController::class, 'store'])->name('livetv.store');
+        Route::get('/create', 'LiveTvController@create')->name('livetv.create');
+        Route::post('/store', 'LiveTvController@store')->name('livetv.store');
 
-        Route::get('/edit/{id}', [LiveTvController::class, 'edit'])->name('livetv.edit');
-        Route::post('/update/{id}', [LiveTvController::class, 'update'])->name('livetv.update');
+        Route::get('/edit/{id}', 'LiveTvController@edit')->name('livetv.edit');
+        Route::post('/update/{id}', 'LiveTvController@update')->name('livetv.update');
         Route::get('/assign-ads/{id}', 'AdAssignmentController@liveTvAds')->name('livetv.assignAds');
 
-        Route::get('/delete/{id}', [LiveTvController::class, 'destroy'])->name('livetv.delete');
+        Route::get('/delete/{id}', 'LiveTvController@destroy')->name('livetv.delete');
 
         
     });
     
-    Route::get('reports/', [LiveTvController::class, 'reports'])->name('livetv.reports');
-    Route::get('reports/filter-reports', [LiveTvController::class, 'filterReport'])->name('livetv.filterReport');
+    Route::get('reports/', 'LiveTvController@reports')->name('livetv.reports');
+    Route::get('reports/filter-reports', 'LiveTvController@filterReport')->name('livetv.filterReport');
 
     Route::get('user_report', 'ReportUserController@index')->name('user.report');
     
@@ -467,6 +466,16 @@ Route::group(['namespace' => 'Admin', 'prefix' => 'admin', 'middleware' => 'auth
         return 'ENews push job dispatched';
     });
 
-});
+    
+    Route::get('/wallet', 'Reels\WalletController@edit')->name('wallet.edit');
+    Route::put('/wallet', 'Reels\WalletController@update')->name('wallet.update');
+    Route::resource('series', 'Reels\SeriesController');
+    Route::resource('series.episodes', 'Reels\EpisodeController')->except(['index', 'show']);
 
+     
+
+
+
+
+});
 

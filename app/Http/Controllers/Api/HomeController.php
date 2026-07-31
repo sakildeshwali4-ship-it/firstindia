@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\App_Section;
+use App\Models\Ads;
 use App\Models\Avatar;
 use App\Models\Banner;
 use App\Models\Bookmark;
@@ -2497,6 +2498,7 @@ class HomeController extends Controller
                             if ($ad->media_type == 'image' && !empty($mediaUrl)) {
                                 $mediaUrl = asset($mediaUrl);
                             }
+                            $startAfterSeconds = Ads::normalizeStartAfterSeconds($ad->start_after_seconds);
                             return [
                                 'id' => $ad->id,
                                 'type' => $ad->type,
@@ -2504,7 +2506,8 @@ class HomeController extends Controller
                                 'media_url' =>  $mediaUrl,
                                 'media_type' => $ad->media_type,
                                 'click_url' => $ad->click_url,
-                                'start_after_seconds' => (int)$ad->start_after_seconds,
+                                'cue_points_seconds' => $startAfterSeconds,
+                                'start_after_seconds' => (int) ($startAfterSeconds[0] ?? 0),
                                 'repeat_every_seconds' => (int)$ad->repeat_every_seconds,
                                 'duration_seconds' => (int)$ad->duration_seconds,
                                 'skippable_after_seconds' => (int)$ad->skippable_after_seconds,
@@ -5399,6 +5402,7 @@ public function enewsBannerDetails(){
                 if ($first->media_type == 'image' && !empty($mediaUrl)) {
                     $mediaUrl = asset($mediaUrl);
                 }
+                $startAfterSeconds = Ads::normalizeStartAfterSeconds($first->start_after_seconds);
                 
                 return [
                     'id' => $first->id,
@@ -5412,7 +5416,8 @@ public function enewsBannerDetails(){
                     'media_type' => $first->media_type,
                     'click_url' => $first->click_url,
 
-                    'start_after_seconds' => $first->start_after_seconds,
+                    'cue_points_seconds' => [],
+                    'start_after_seconds' => (int) ($startAfterSeconds[0] ?? 0),
                     'repeat_every_seconds' => $first->repeat_every_seconds,
                     'duration_seconds' => $first->duration_seconds,
                     'skippable_after_seconds' => $first->skippable_after_seconds,

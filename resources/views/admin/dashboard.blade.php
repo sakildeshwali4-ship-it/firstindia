@@ -226,7 +226,7 @@
                     @endif
                 </div>
             </div>
-            
+            <?php /*
             <div class="col-12 col-xl-4">
                 <div class="video-box card mb-3">
                     <div class="box-title mt-0">
@@ -247,15 +247,15 @@
                     </div>
                     @endif
                 </div>
-            </div>
-                       <div class="col-12 col-xl-4">
+            </div> */ ?>
+            <div class="col-12 col-xl-8">
                 <div class="card mb-3">
                     <div class="card-header box-title mt-0">
                     <h2 class="title text-white">Package Earning Statistice</h2>
                     <a href="{{ route('transaction') }}" class="btn btn-link">{{__('Label.View All')}}</a>
                     </div>
                     <div class="card-body">
-                    <canvas id="MyChart" width="100%" height="30px"></canvas>
+                    <canvas id="MyChart" width="100%" height="98%"></canvas>
                     </div>
     </div>
                 
@@ -493,7 +493,7 @@
                 datasetValue[i] = {
                     label: cData['label'][i],
                     data: cData['sum'][i],
-                    backgroundColor: backcolor[i],
+                    backgroundColor: '#f97316',
                 }
             }
 
@@ -511,7 +511,7 @@
                     position: "top",
                     text: "Package Earning Statistice (Current Year)",
                     fontSize: 18,
-                    fontColor: "#000"
+                    fontColor: "#fff"
                 },
                 legend: {
                     title: "text",
@@ -519,7 +519,7 @@
                     position: 'top',
                     labels: {
                         fontSize: 16,
-                        fontColor: "#000000",
+                        fontColor: "#fff",
                     }
                 },
                 scales: {
@@ -528,7 +528,7 @@
                             display: true,
                             labelString: 'Amount',
                             fontSize: 16,
-                            fontColor: "#000000",
+                            fontColor: "#fff",
                         },
                     }],
                     xAxes: [{
@@ -536,7 +536,7 @@
                             display: true,
                             labelString: 'Month',
                             fontSize: 16,
-                            fontColor: "#000000",
+                            fontColor: "#fff",
                         }
                     }]
                 }

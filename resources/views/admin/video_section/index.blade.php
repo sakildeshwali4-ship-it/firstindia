@@ -3,7 +3,7 @@
 @section('title', 'Section')
 
 @section('content')
-<style>.card {position:inherit !important;} div[class^='video_sort_'], div[class*=' video_sort_']{overflow: auto;}</style>
+<style>.card {position:inherit !important;} div[class^='video_sort_'], div[class*=' video_sort_']{overflow: auto;}#edit_video_section11 .select2-selection__rendered {max-height: 100px; overflow: scroll !important;}</style>
      <div class="body-content">
           <!-- mobile title -->
           <h1 class="page-title-sm">@yield('title')</h1>
@@ -41,7 +41,7 @@
                          <h5 class="card-header">Add Section </h5>
                          @if(isset($type) && $type != null)
                          <div class="card-body">
-
+ 
                               <form id="save_video_section" name="save_video_section" autocomplete="off">
                                    @csrf
                                    <div class="custom-border-card">
@@ -57,6 +57,7 @@
                                                        <label>{{__('Label.Video Type')}}</label>
                                                        <select class="form-control" name="video_type" id="video_type">
                                                             <option value="" selected disabled>{{__('Label.Select Video Type')}}</option>
+                                                            <option value="0">Web Series</option>
                                                             <option value="1">{{__('Label.Video')}}</option>
                                                             <option value="2">{{__('Label.Show')}}</option>
                                                             <option value="3">{{__('Label.Language')}}</option>
@@ -168,7 +169,7 @@
                                              </div>
                                         </div>
                                         <div class="col-md-6 Model_Type_Id">
-                                             <div class="form-group">
+                                             <div class="form-group Model_Type_Id_Inner">
                                                   <label>{{__('Label.Type')}}</label>
                                                   <select class="form-control" name="type_id" id="edit_type_id" style="width:100%!important;">
                                                        <option value="" selected disabled> Select Type </option>
@@ -230,6 +231,7 @@
 					data: {position, section_id, type_id, is_home_screen},
 					type: 'POST',
 					success: function(response){
+                              
 						if(response.status == 200){
 							$('.section_type_tab_'+type_id+'_'+is_home_screen).trigger('click');
 						} else {
@@ -403,6 +405,26 @@
                               toastr.error(errorThrown.msg, 'failed');
                          }
                     });
+               }else if (Video_Type == 0 && Type_Id != "" && Type_Id != null) {
+                    $.ajax({
+                         type: 'get',
+                         url: '{{ route("GetLangOrCat") }}',
+                         data: {
+                              Video_Type: Video_Type,
+                              Type_Id: Type_Id,
+                              Upcoming_Type: Upcoming_Type,
+                         },
+                         success: function(resp) {
+                              for (var i = 0; i < resp.result.length; i++) {
+                                   $('#video_id').append(
+                                        `<option value="${resp.result[i].id}">${resp.result[i].name}</option>`
+                                   );
+                              }
+                         },
+                         error: function(XMLHttpRequest, textStatus, errorThrown) {
+                              toastr.error(errorThrown.msg, 'failed');
+                         }
+                    });
                }
           });
           $("#type_id").change(function() {
@@ -447,6 +469,30 @@
                               for (var i = 0; i < resp.result.length; i++) {
                                    $('#video_id').append(
                                         `<option value="${resp.result[i].id}">${resp.result[i].name}</option>`
+                                   );
+                              }
+                         },
+                         error: function(XMLHttpRequest, textStatus, errorThrown) {
+                              toastr.error(errorThrown.msg, 'failed');
+                         }
+                    });
+               } else if (Video_Type == 0) {
+               
+                    var Upcoming_Type = $('#upcoming_type').find(":selected").val();
+
+                    $.ajax({
+                         type: 'get',
+                         url: '{{ route("GetLangOrCat") }}',
+                         data: {
+                              Video_Type: Video_Type,
+                              Type_Id: Type_Id,
+                              Upcoming_Type: Upcoming_Type
+                         },
+                         success: function(resp) {
+                              $("#video_id").empty();
+                              for (var i = 0; i < resp.result.length; i++) {
+                                   $('#video_id').append(
+                                        `<option value="${resp.result[i].id}">${resp.result[i].title}</option>`
                                    );
                               }
                          },
@@ -500,9 +546,12 @@
                     },
                     url: '{{ route("GetSectionData") }}',
                     success: function(resp) {
-
+                         console.log("resp___", resp);
                          for (var i = 0; i < resp.result.length; i++) {
-//console.log(resp);
+                              var typeHideClass = '';
+                              if(resp.result[i].type_id == 15) {
+                                   var typeHideClass = 'hide';
+                              }
                               if (resp.result[i].video_type == 1) {
                                    var Video_Type = "Video";
                               } else if (resp.result[i].video_type == 2) {
@@ -537,7 +586,7 @@
                                                             '<input type="text" class="form-control" name="video_type" id="video_type" value="' + Video_Type + '" style="width:100%!important;" readonly/>' +
                                                        '</div>' +
                                                   '</div>' +
-                                                  '<div class="col-md-2">' +
+                                                  '<div class="col-md-2 '+typeHideClass+'">' +
                                                        '<div class="form-group">' +
                                                             '<label>{{__("Label.Type")}}</label>' +
                                                             '<input type="text" class="form-control" name="type_id" id="type_id" value="' +resp.result[i].type.name + '" style="width:100%!important;" readonly/>' +
@@ -584,6 +633,7 @@
                });
           }
           function Selected_Type(type_id, Type, is_home_screen) {
+               //console.log("is_home_screen", is_home_screen);
                $.ajax({
                     headers: {
                          'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -782,6 +832,11 @@
 
           // Edit Section
           function EditSection(id, video_type, type_id, upcoming_type, is_home_page) {
+               if(is_home_page == 1 && type_id == 15) {
+                    $(".Model_Type_Id_Inner").hide();
+               } else {
+                    $(".Model_Type_Id_Inner").show();
+               }
                $.ajax({
                     headers: {
                          'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -793,6 +848,8 @@
                          video_type: video_type,
                          type_id: type_id,
                          upcoming_type: upcoming_type,
+                         is_home_page,
+                         request_from:"homeSection"
                     },
                     success: function(resp) {
                          //console.log(resp);
@@ -912,9 +969,29 @@
                          }
                     });
                }
+               else if (Video_Type == 0 && Type_Id != "" && Type_Id != null) {
+                    $.ajax({
+                         type: 'get',
+                         url: '{{ route("GetLangOrCat") }}',
+                         data: {
+                              Video_Type: Video_Type,
+                              Type_Id: Type_Id,
+                              Upcoming_Type: Upcoming_Type,
+                         },
+                         success: function(resp) {
+                              for (var i = 0; i < resp.result.length; i++) {
+                                   $('#edit_video_id').append(
+                                        `<option value="${resp.result[i].id}">${resp.result[i].title}</option>`
+                                   );
+                              }
+                         },
+                         error: function(XMLHttpRequest, textStatus, errorThrown) {
+                              toastr.error(errorThrown.msg, 'failed');
+                         }
+                    });
+               }
           });
-          $("#edit_type_id").change(function() {
-
+          $("#edit_type_id").change(function() { 
                var Type_Id = $(this).children("option:selected").val();
                var Video_Type = $('#edit_video_type').find(":selected").val();
 

@@ -1,7 +1,6 @@
 @php
     $startDate = $result && $result->start_date ? date('Y-m-d\TH:i', strtotime($result->start_date)) : '';
     $endDate = $result && $result->end_date ? date('Y-m-d\TH:i', strtotime($result->end_date)) : '';
-    $startAfterSeconds = $result ? $result->start_after_seconds_display : '30';
 @endphp
 
 <div class="form-row">
@@ -82,8 +81,7 @@
     <div class="col-md-3">
         <div class="form-group">
             <label>Start After Seconds</label>
-            <input name="start_after_seconds" type="text" class="form-control" value="{{ $startAfterSeconds }}" placeholder="15,120,300">
-            <small class="form-text text-muted">Use comma-separated values to save multiple timings for video ads.</small>
+            <input name="start_after_seconds" type="number" min="0" class="form-control" value="{{ $result->start_after_seconds ?? 30 }}">
         </div>
     </div>
     <div class="col-md-3">

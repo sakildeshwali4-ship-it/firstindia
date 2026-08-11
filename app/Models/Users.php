@@ -30,10 +30,11 @@ class Users extends Authenticatable
         'image' => 'string',
         'type' => 'integer',
         'status' => 'integer',
-        'wallet' => 'integer',
         'api_token' => 'string',
         'email_verify_token' => 'string',
         'is_email_verify' => 'string',
+        'device_token' => 'string',
+        'device_type' => 'string',
     ];
 
     public function walletTransactions(): HasMany
@@ -50,4 +51,5 @@ class Users extends Authenticatable
     {
         return $this->hasMany(UserEpisodeLike::class, 'user_id');
     }
+
 }

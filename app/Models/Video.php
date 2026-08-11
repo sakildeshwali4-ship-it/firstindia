@@ -48,6 +48,8 @@ class Video extends Model
         'imdb_rating' => 'integer',
         'view' => 'integer',
         'status' => 'integer',
+        //'exclusive_movie_data' => 'string',
+		'related_video_ids' => 'string'
     ];
 
     public function type()

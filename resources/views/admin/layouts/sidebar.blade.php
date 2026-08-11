@@ -151,7 +151,7 @@
                 <span>{{__('Event')}}</span>
             </a>
         </li>
-        <li class="dropdown {{ request()->is('admin/web-series*') ? 'active' : '' }}{{ request()->is('admin/seasons*') ? 'active' : '' }}{{ request()->is('admin/episodes*') ? 'active' : '' }}">
+<li class="dropdown {{ request()->is('admin/web-series*') ? 'active' : '' }}{{ request()->is('admin/seasons*') ? 'active' : '' }}{{ request()->is('admin/episodes*') ? 'active' : '' }}">
             <a class="dropdown-toggle" id="dropdownMenuClickable" data-toggle="dropdown" aria-haspopup="true"
                 aria-expanded="false">
                 <i class="fa-solid fa-satellite-dish fa-2xl menu-icon"></i>
@@ -182,6 +182,7 @@
 
         <?php
         if(Auth::user()->id == 3) { ?>
+
             @php
                 $seriesMenu = request()->is('admin/series*') || request()->is('admin/wallet*');
                 $addSeriesActive = request()->is('admin/series/create');
@@ -221,13 +222,14 @@
                 </ul>
             </li>
 
+
              <li class="side_line {{ request()->is('admin/ads*') ? 'active' : '' }}">
             <a href="{{ route('ads') }}">
                 <i class="fa-solid fa-rectangle-ad fa-2xl menu-icon"></i>
                 <span>Ads</span>
             </a>
         </li>
-        <li class="side_line {{ request()->is('admin/option*') ? 'active' : '' }}">
+<li class="side_line {{ request()->is('admin/option*') ? 'active' : '' }}">
             <a href="{{ route('option.index') }}">
                 <i class="fa-solid fa-video fa-2xl menu-icon"></i>
                 <span>Option Data</span>

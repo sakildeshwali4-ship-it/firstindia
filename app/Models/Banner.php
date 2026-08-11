@@ -34,4 +34,8 @@ class Banner extends Model
     {
         return $this->belongsTo(TVShow::class, 'video_id');
     }
+    public function webseries()
+    {
+        return $this->belongsTo(WebSeries::class, 'video_id', 'id');
+    }
 }

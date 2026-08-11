@@ -10,6 +10,7 @@ use App\Models\Video_Watch;
 use Illuminate\Http\Request;
 use Validator;
 use Exception;
+use Carbon\Carbon;
 
 // Login Type = 1- Facebook, 2- Google, 3- OTP, 4- Normal, 5- Apple	
 
@@ -25,139 +26,298 @@ class UserController extends Controller
             return response()->json(array('status' => 400, 'errors' => $e->getMessage()));
         }
     }
-    public function data(Request $request)
+
+     public function data(Request $request)
     {
+		ini_set('memory_limit', '-1');
         try {
-            if ($request == true) {
 
-                $input_search = $request['input_search'];
-                $input_type = $request['input_type'];
-                $input_login_type = $request['input_login_type'];
+		    if (!$request) {
+		        return view('admin.user.index');
+		    }
+ 
+		    if ($request->length == 2147483647) {
 
-                if ($input_search != null && isset($input_search)) {
+		        $data = Users::select('name', 'email', 'mobile');
 
-                    if ($input_login_type == "all") {
+		        return DataTables::of($data)
+		            ->addIndexColumn()
+		            ->addColumn('image', fn() => '')
+		            ->addColumn('date', fn() => '')
+		            ->addColumn('action', fn() => '')
+		            ->addColumn('type', fn() => '')
+		            ->make(true);
+		    }
+ 
+		    $query = Users::query();
+ 
+		    if (!empty($request->input_search)) {
+		        $search = $request->input_search;
+		        $query->where(function ($q) use ($search) {
+		            $q->where('name', 'LIKE', "%{$search}%")
+		              ->orWhere('email', 'LIKE', "%{$search}%")
+		              ->orWhere('mobile', 'LIKE', "%{$search}%");
+		        });
+		    }
+ 
+		    if ($request->input_login_type !== 'all') {
+		        $query->where('type', $request->input_login_type);
+		    }
 
-                        if ($input_type == "today") {
+		     
+		    if (!empty($request->date_range)) {
 
-                            $data = Users::where(function ($query) use ($input_search) {
-                                $query->where('name', 'LIKE', "%{$input_search}%")->orWhere('email', 'LIKE', "%{$input_search}%")->orWhere('mobile', 'LIKE', "%{$input_search}%");
-                            })
-                                ->whereDay('created_at', date('d'))
-                                ->whereMonth('created_at', date('m'))
-                                ->whereYear('created_at', date('Y'))
-                                ->latest()->get();
-                        } else if ($input_type == "month") {
+		        [$start, $end] = explode(' - ', $request->date_range);
 
-                            $data = Users::where(function ($query) use ($input_search) {
-                                $query->where('name', 'LIKE', "%{$input_search}%")->orWhere('email', 'LIKE', "%{$input_search}%")->orWhere('mobile', 'LIKE', "%{$input_search}%");
-                            })
-                                ->whereMonth('created_at', date('m'))
-                                ->whereYear('created_at', date('Y'))
-                                ->latest()->get();
-                        } else if ($input_type == "year") {
+		        $query->whereBetween('created_at', [
+		            Carbon::createFromFormat('m/d/Y', $start)->startOfDay(),
+		            Carbon::createFromFormat('m/d/Y', $end)->endOfDay(),
+		        ]);
+		    }  
+		    else if ($request->input_type !== 'all') {
 
-                            $data = Users::where(function ($query) use ($input_search) {
-                                $query->where('name', 'LIKE', "%{$input_search}%")->orWhere('email', 'LIKE', "%{$input_search}%")->orWhere('mobile', 'LIKE', "%{$input_search}%");
-                            })
-                                ->whereYear('created_at', date('Y'))
-                                ->latest()->get();
-                        } else {
+		        if ($request->input_type === 'today') {
+		            $query->whereDate('created_at', Carbon::today());
+		        }
 
-                            $data = Users::where(function ($query) use ($input_search) {
-                                $query->where('name', 'LIKE', "%{$input_search}%")->orWhere('email', 'LIKE', "%{$input_search}%")->orWhere('mobile', 'LIKE', "%{$input_search}%");
-                            })
-                                ->latest()->get();
-                        }
-                    } else {
+		        if ($request->input_type === 'month') {
+		            $query->whereMonth('created_at', now()->month)
+		                  ->whereYear('created_at', now()->year);
+		        }
 
-                        if ($input_type == "today") {
+		        if ($request->input_type === 'year') {
+		            $query->whereYear('created_at', now()->year);
+		        }
+		    }
+ 
+		    $appName = config('app.image_url');
+		    $length  = $request->length;
+ 
+		    return DataTables()::of($query->latest())
+		        ->addIndexColumn()
 
-                            $data = Users::where(function ($query) use ($input_search) {
-                                $query->where('name', 'LIKE', "%{$input_search}%")->orWhere('email', 'LIKE', "%{$input_search}%")->orWhere('mobile', 'LIKE', "%{$input_search}%");
-                            })
-                                ->where('type', $input_login_type)
-                                ->whereDay('created_at', date('d'))
-                                ->whereMonth('created_at', date('m'))
-                                ->whereYear('created_at', date('Y'))
-                                ->latest()->get();
-                        } else if ($input_type == "month") {
+		        ->addColumn('date', function ($row) {
+		            return $row->created_at
+		                ? $row->created_at->format('Y-m-d')
+		                : '-';
+		        })
 
-                            $data = Users::where(function ($query) use ($input_search) {
-                                $query->where('name', 'LIKE', "%{$input_search}%")->orWhere('email', 'LIKE', "%{$input_search}%")->orWhere('mobile', 'LIKE', "%{$input_search}%");
-                            })
-                                ->where('type', $input_login_type)
-                                ->whereMonth('created_at', date('m'))
-                                ->whereYear('created_at', date('Y'))
-                                ->latest()->get();
-                        } else if ($input_type == "year") {
+		        ->addColumn('image', function ($row) use ($appName, $length) {
 
-                            $data = Users::where(function ($query) use ($input_search) {
-                                $query->where('name', 'LIKE', "%{$input_search}%")->orWhere('email', 'LIKE', "%{$input_search}%")->orWhere('mobile', 'LIKE', "%{$input_search}%");
-                            })
-                                ->where('type', $input_login_type)
-                                ->whereYear('created_at', date('Y'))
-                                ->latest()->get();
-                        } else {
+		            if ($length == -1) return '';
 
-                            $data = Users::where(function ($query) use ($input_search) {
-                                $query->where('name', 'LIKE', "%{$input_search}%")->orWhere('email', 'LIKE', "%{$input_search}%")->orWhere('mobile', 'LIKE', "%{$input_search}%");
-                            })
-                                ->where('type', $input_login_type)
-                                ->latest()->get();
-                        }
-                    }
-                } else {
+		            if (!empty($row->image) &&
+		                file_exists(public_path('images/' . $this->folder . '/' . $row->image))) {
+		                return $appName . $this->folder . '/' . $row->image;
+		            }
 
-                    if ($input_login_type == "all") {
+		            return asset('assets/imgs/no_user.png');
+		        })
 
-                        if ($input_type == "today") {
+		        ->addColumn('action', function ($row) use ($length) {
 
-                            $data = Users::whereDay('created_at', date('d'))->whereMonth('created_at', date('m'))->whereYear('created_at', date('Y'))->latest()->get();
-                        } else if ($input_type == "month") {
+		            if ($length == -1) return '';
 
-                            $data = Users::whereMonth('created_at', date('m'))->whereYear('created_at', date('Y'))->latest()->get();
-                        } else if ($input_type == "year") {
+		            return '
+		            <div class="d-flex justify-content-center gap-2">
+		                <a href="' . route("editUser", $row->id) . '" title="Edit">
+		                    <i class="fa-regular fa-pen-to-square"></i>
+		                </a>
+		                <a href="' . route("deleteUser", $row->id) . '"
+		                   onclick="return confirm(\'Are you sure?\')"
+		                   title="Delete">
+		                    <i class="fa-solid fa-trash-can"></i>
+		                </a>
+		            </div>';
+		        })
 
-                            $data = Users::whereYear('created_at', date('Y'))->latest()->get();
-                        } else {
+		        ->rawColumns(['action'])
+		        ->make(true);
 
-                            $data = Users::latest()->get();
-                        }
-                    } else {
+		} catch (\Exception $e) {
 
-                        if ($input_type == "today") {
+		    return response()->json([
+		        'status' => 400,
+		        'errors' => $e->getMessage()
+		    ]);
+		}
+    }
 
-                            $data = Users::where('type', $input_login_type)->whereDay('created_at', date('d'))->whereMonth('created_at', date('m'))->whereYear('created_at', date('Y'))->latest()->get();
-                        } else if ($input_type == "month") {
 
-                            $data = Users::where('type', $input_login_type)->whereMonth('created_at', date('m'))->whereYear('created_at', date('Y'))->latest()->get();
-                        } else if ($input_type == "year") {
+    public function dataOld(Request $request)
+    {
+		ini_set('memory_limit', '-1');
+        try {
+            if ($request) {
+				if($request->length == 2147483647) {
+					$data = Users::select('name', 'email', 'mobile');
+					return DataTables()::of($data)->addIndexColumn()
+					->addColumn('image', function ($row) {
+						return '';
+					})
+					->addColumn('date', function ($row) {
+						return '';
+					})
+					->addColumn('action', function ($row) {
+						return '';
+					})
+					->addColumn('type', function ($row) {
+						return '';
+					})
+					->make(true);
+					//$output['data'] = $data;
+					//$output['recordsTotal'] = count($data);
+					//$output['recordsFiltered'] = $output['recordsTotal'];
+					//$output['draw'] = $request->draw;
+					//return json_encode($output);
+				} else { 
+					$input_search = $request['input_search'];
+					$input_type = $request['input_type'];
+					$input_login_type = $request['input_login_type'];
 
-                            $data = Users::where('type', $input_login_type)->whereYear('created_at', date('Y'))->latest()->get();
-                        } else {
+					if ($input_search != null && isset($input_search)) {
 
-                            $data = Users::where('type', $input_login_type)->latest()->get();
-                        }
-                    }
-                }
+						if ($input_login_type == "all") {
 
-                imageNameToUrl($data, 'image', $this->folder);
+							if ($input_type == "today") {
 
-                return DataTables()::of($data)
-                    ->addIndexColumn()
-                    ->addColumn('action', function ($row) {
-                        $btn = '<div class="d-flex justify-content-center gap-2">';
-                        $btn .= '<a href="' . route("editUser", $row->id) . '" title="Edit"><i class="fa-regular fa-pen-to-square"></i></a> ';
-                        $btn .= '<a href="' . route("deleteUser", $row->id) . '" title="Delete" onclick="return confirm(\'Are you sure !!! You want to Delete this User ?\')"><i class="fa-solid fa-trash-can"></i></a></div>';
-                        return $btn;
-                    })
-                    ->addColumn('date', function ($row) {
-                        $date = date("Y-m-d", strtotime($row->created_at));
-                        return $date;
-                    })
-                    ->rawColumns(['action'])
-                    ->make(true);
+								$data = Users::where(function ($query) use ($input_search) {
+									$query->where('name', 'LIKE', "%{$input_search}%")->orWhere('email', 'LIKE', "%{$input_search}%")->orWhere('mobile', 'LIKE', "%{$input_search}%");
+								})
+									->whereDay('created_at', date('d'))
+									->whereMonth('created_at', date('m'))
+									->whereYear('created_at', date('Y'))
+									->latest()/*->get()*/;
+							} else if ($input_type == "month") {
+
+								$data = Users::where(function ($query) use ($input_search) {
+									$query->where('name', 'LIKE', "%{$input_search}%")->orWhere('email', 'LIKE', "%{$input_search}%")->orWhere('mobile', 'LIKE', "%{$input_search}%");
+								})
+									->whereMonth('created_at', date('m'))
+									->whereYear('created_at', date('Y'))
+									->latest()/*->get()*/;
+							} else if ($input_type == "year") {
+
+								$data = Users::where(function ($query) use ($input_search) {
+									$query->where('name', 'LIKE', "%{$input_search}%")->orWhere('email', 'LIKE', "%{$input_search}%")->orWhere('mobile', 'LIKE', "%{$input_search}%");
+								})
+									->whereYear('created_at', date('Y'))
+									->latest()/*->get()*/;
+							} else {
+
+								$data = Users::where(function ($query) use ($input_search) {
+									$query->where('name', 'LIKE', "%{$input_search}%")->orWhere('email', 'LIKE', "%{$input_search}%")->orWhere('mobile', 'LIKE', "%{$input_search}%");
+								})
+									->latest()/*->get()*/;
+							}
+						} else {
+
+							if ($input_type == "today") {
+
+								$data = Users::where(function ($query) use ($input_search) {
+									$query->where('name', 'LIKE', "%{$input_search}%")->orWhere('email', 'LIKE', "%{$input_search}%")->orWhere('mobile', 'LIKE', "%{$input_search}%");
+								})
+									->where('type', $input_login_type)
+									->whereDay('created_at', date('d'))
+									->whereMonth('created_at', date('m'))
+									->whereYear('created_at', date('Y'))
+									->latest()/*->get()*/;
+							} else if ($input_type == "month") {
+
+								$data = Users::where(function ($query) use ($input_search) {
+									$query->where('name', 'LIKE', "%{$input_search}%")->orWhere('email', 'LIKE', "%{$input_search}%")->orWhere('mobile', 'LIKE', "%{$input_search}%");
+								})
+									->where('type', $input_login_type)
+									->whereMonth('created_at', date('m'))
+									->whereYear('created_at', date('Y'))
+									->latest()/*->get()*/;
+							} else if ($input_type == "year") {
+
+								$data = Users::where(function ($query) use ($input_search) {
+									$query->where('name', 'LIKE', "%{$input_search}%")->orWhere('email', 'LIKE', "%{$input_search}%")->orWhere('mobile', 'LIKE', "%{$input_search}%");
+								})
+									->where('type', $input_login_type)
+									->whereYear('created_at', date('Y'))
+									->latest()/*->get()*/;
+							} else {
+
+								$data = Users::where(function ($query) use ($input_search) {
+									$query->where('name', 'LIKE', "%{$input_search}%")->orWhere('email', 'LIKE', "%{$input_search}%")->orWhere('mobile', 'LIKE', "%{$input_search}%");
+								})
+									->where('type', $input_login_type)
+									->latest()/*->get()*/;
+							}
+						}
+					} else {
+
+						if ($input_login_type == "all") {
+
+							if ($input_type == "today") {
+
+								$data = Users::whereDay('created_at', date('d'))->whereMonth('created_at', date('m'))->whereYear('created_at', date('Y'))->latest()/*->get()*/;
+							} else if ($input_type == "month") {
+
+								$data = Users::whereMonth('created_at', date('m'))->whereYear('created_at', date('Y'))->latest()/*->get()*/;
+							} else if ($input_type == "year") {
+
+								$data = Users::whereYear('created_at', date('Y'))->latest()/*->get()*/;
+							} else {
+
+								$data = Users::latest()/*->get()*/;
+							}
+						} else {
+
+							if ($input_type == "today") {
+
+								$data = Users::where('type', $input_login_type)->whereDay('created_at', date('d'))->whereMonth('created_at', date('m'))->whereYear('created_at', date('Y'))->latest()/*->get()*/;
+							} else if ($input_type == "month") {
+
+								$data = Users::where('type', $input_login_type)->whereMonth('created_at', date('m'))->whereYear('created_at', date('Y'))->latest()/*->get()*/;
+							} else if ($input_type == "year") {
+
+								$data = Users::where('type', $input_login_type)->whereYear('created_at', date('Y'))->latest()/*->get()*/;
+							} else {
+
+								$data = Users::where('type', $input_login_type)->latest()/*->get()*/;
+							}
+						}
+					}
+
+					//imageNameToUrl($data->offset(0)->limit(10)->get(), 'image', $this->folder);
+					$appName = \Config::get('app.image_url');
+					$length = $request->length;
+					return DataTables()::of($data)
+						->addIndexColumn()
+						->addColumn('action', function ($row) use ($length) {
+							if($length == -1) {
+								return '';
+							}
+							$btn = '<div class="d-flex justify-content-center gap-2">';
+							$btn .= '<a href="' . route("editUser", $row->id) . '" title="Edit"><i class="fa-regular fa-pen-to-square"></i></a> ';
+							$btn .= '<a href="' . route("deleteUser", $row->id) . '" title="Delete" onclick="return confirm(\'Are you sure !!! You want to Delete this User ?\')"><i class="fa-solid fa-trash-can"></i></a></div>';
+							return $btn;
+						})
+						->addColumn('date', function ($row) {
+							$date = date("Y-m-d", strtotime($row->created_at));
+							return $date;
+						})
+						->addColumn('image', function ($row) use($appName, $length) {
+							if($length == -1) {
+								return '';
+							}
+							if(!empty($row['image'])) {
+								if (file_exists(public_path('images/' . $this->folder . '/' . $row['image']))) {
+									return $appName . $this->folder . '/' . $row['image'];
+								} else {
+									return asset('assets/imgs/no_user.png');
+								}
+							} else {
+								return asset('assets/imgs/no_user.png');
+							}
+						})
+						->rawColumns(['action'])
+						->make(true);
+				}
             } else {
                 return view('admin.user.index');
             }

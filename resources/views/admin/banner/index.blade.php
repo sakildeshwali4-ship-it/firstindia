@@ -98,7 +98,6 @@
         }
 
         function Selected_Type(type_id, type, is_home_page){
-
             $(".upcoming_type").hide();
             if(type == 5){
                 $(".upcoming_type").show();
@@ -144,6 +143,28 @@
                         $('#video_id').append(`<option value="" selected disabled> Select Video </option>`);          
                         for (var i = 0; i < resp.result.length; i++) {
                             $('#video_id').append(`<option value="${resp.result[i].id}">${resp.result[i].name}</option>`);          
+                        }
+                    },
+                    error: function(XMLHttpRequest, textStatus, errorThrown) {
+                        toastr.error(errorThrown.msg, 'failed');
+                    }
+                });
+            } else if (type == 0) {
+
+                var upcoming_type = $('#upcoming_type').find(":selected").val();
+                $.ajax({
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    type: 'POST',
+                    url: '{{ route("BannerTypeByVideo") }}',
+                    data: {type_id:type_id, type:type, upcoming_type:upcoming_type},
+                    success: function(resp) {
+                        console.log("resp____", resp);
+                        $("#video_id").empty();
+                        $('#video_id').append(`<option value="" selected disabled> Select Web Series </option>`);          
+                        for (var i = 0; i < resp.result.length; i++) {
+                            $('#video_id').append(`<option value="${resp.result[i].id}">${resp.result[i].title}</option>`);          
                         }
                     },
                     error: function(XMLHttpRequest, textStatus, errorThrown) {

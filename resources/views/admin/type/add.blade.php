@@ -27,7 +27,7 @@
         </div>
 
         <div class="card custom-border-card mt-3">
-            <form id="save_type">
+            <form enctype="multipart/form-data" id="save_type">
                 @csrf
                 <div class="form-row">
                     <div class="col-md-6">
@@ -42,9 +42,26 @@
                             <label for="type">{{__('Label.Types')}}</label>
                             <select class="form-control" id="type" name="type">
                                 <option value="1"> {{__('Label.Video')}}</option>
+                                <option value="0"> Web Series</option>
                                 <!--<option value="2"> {{__('Label.Show')}}</option>
                                 <option value="5"> Upcoming</option>-->
                             </select>
+                        </div>
+                    </div>
+                </div>
+				<div class="form-row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>{{__('Label.IMAGE')}}</label>
+                            <input type="file" class="form-control" id="image" name="type_image">
+                            <label class="mt-1 text-gray">{{__('Label.Note_Image')}}</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <div class="custom-file ml-5">
+                                <img src="{{asset('assets/imgs/no_img.png')}}" style="height: 120px; width: 120px;" class="img-thumbnail" id="preview-image-before-upload">
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -3,6 +3,7 @@
 @section('title', __('Label.Users List'))
 
 @section('content')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css">
     <div class="body-content">
         <!-- mobile title -->
         <h1 class="page-title-sm">@yield('title')</h1>
@@ -27,8 +28,9 @@
             <div class="col-4">
                 <div class="d-flex justify-content-end gap-2">
                     <button id="ms_excel" class="btn btn-default" title="Download MS-Excel"><i class="fa-sharp fa-solid fa-file-excel mr-2 font-weight-bold text-white" style="font-size:18px"></i>MS-Excel</button>
-                    <button id="csv" class="btn btn-default" title="Download CSV"><i class="fa-solid fa-file-csv mr-2 font-weight-bold text-white" style="font-size:18px"></i>CSV</button>
-                    <button id="pdf" class="btn btn-default" title="Download PDF"><i class="fa-solid fa-file-pdf mr-2 font-weight-bold text-white" style="font-size:18px"></i>PDF</button>
+                    <button id="ms_excel_all" class="btn btn-default" title="Download MS-Excel"><i class="fa-sharp fa-solid fa-file-excel mr-2 font-weight-bold text-white" style="font-size:18px"></i>Excel All</button>
+                    <?php /*<button id="csv" class="btn btn-default" title="Download CSV"><i class="fa-solid fa-file-csv mr-2 font-weight-bold text-white" style="font-size:18px"></i>CSV</button>
+                    <button id="pdf" class="btn btn-default" title="Download PDF"><i class="fa-solid fa-file-pdf mr-2 font-weight-bold text-white" style="font-size:18px"></i>PDF</button> */ ?>
                 </div>
             </div>
         </div>
@@ -40,8 +42,18 @@
                     <span class="input-group-text" id="basic-addon1"><img src="{{ asset('assets/imgs/search.png') }}"></span>
                 </div>
                 <input type="text" id="input_search" class="form-control" placeholder="Search Users" aria-label="Search" aria-describedby="basic-addon1">
-            </div>
-            <div class="sorting mr-4">
+            </div> 
+             @if(Auth::user()->id == 3)
+                <div class="sorting ml-4 mr-4">
+                    <label>Date :</label>
+                    <input type="text"
+                           id="date_range"
+                           class="form-control"
+                           style="min-width: 260px;"
+                           readonly>
+                </div>
+            @endif
+            <div class="sorting ml-4 mr-4">
                 <label>Sort by :</label>
                 <select class="form-control" id="input_type">
                     <option value="all">All</option>
@@ -85,11 +97,66 @@
 @endsection
 
 @section('pagescript')
+<script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<script>
+$(function () {
+
+    let start = moment().startOf('year');
+    let end   = moment().endOf('year');
+
+    function setDate(start, end) {
+        $('#date_range').val(
+            start.format('MM/DD/YYYY') + ' - ' + end.format('MM/DD/YYYY')
+        );
+    }
+
+    $('#date_range').daterangepicker({
+        autoUpdateInput: false,
+        opens: 'left',
+        locale: {
+            cancelLabel: 'Clear'
+        },
+        ranges: {
+            'Today': [moment(), moment()],
+            'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+            'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+            'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+            'This Month': [moment().startOf('month'), moment().endOf('month')],
+            'Last Month': [
+                moment().subtract(1, 'month').startOf('month'),
+                moment().subtract(1, 'month').endOf('month')
+            ],
+            'This Year': [moment().startOf('year'), moment().endOf('year')],
+            'Last Year': [
+                moment().subtract(1, 'year').startOf('year'),
+                moment().subtract(1, 'year').endOf('year')
+            ]
+        }
+    }, setDate);
+
+    $('#date_range').on('apply.daterangepicker', function (ev, picker) {
+        $(this).val(
+            picker.startDate.format('MM/DD/YYYY') +
+            ' - ' +
+            picker.endDate.format('MM/DD/YYYY')
+        );
+
+        $('.user-table').DataTable().draw();
+    });
+
+    $('#date_range').on('cancel.daterangepicker', function () {
+        $(this).val('');
+        $('.user-table').DataTable().draw();
+    });
+
+});
+</script>
     <script>
         $(document).ready(function() {
             $(function() {
                 var table = $('.user-table').DataTable({
-                    dom: "<'top'f>rt<'row'<'col-2'i><'col-1'l><'col-9'p>>",
+                    dom: "<'top'f>rt<'row'<'col-4'i><'col-2'l><'col-6'p>>",
                     searching: false,
                     responsive: true,
                     autoWidth: false,
@@ -111,12 +178,14 @@
                             d.input_type = $('#input_type').val();
                             d.input_login_type = $('#input_login_type').val();
                             d.input_search = $('#input_search').val();
+                            d.date_range = $('#date_range').val();
                         },
                     },
                     columns: [{
                             data: 'DT_RowIndex',
                             name: 'DT_RowIndex',
-                            searchable: false
+                            searchable: false,
+                            orderable: false
                         },
                         {
                             data: 'image',
@@ -124,7 +193,11 @@
                             orderable: false,
                             searchable: false,
                             render: function(data, type, full, meta) {
-                                return "<a href='" + data + "' target='_blank' title='Watch'><img src='" + data + "' class='rounded-circle' style='height:55px; width:55px'></a>";
+								if(data) {
+									return "<a href='" + data + "' target='_blank' title='Watch'><img src='" + data + "' class='rounded-circle' style='height:55px; width:55px'></a>";
+								} else {
+									return '';
+								}
                             },
                         },
                         {
@@ -222,7 +295,15 @@
                                 $('row:first c', sheet).attr('s', '2');
                             },
                         },
-                        {
+						{
+							extend: 'excel',
+							title: 'Users List',
+							exportOptions: {
+								columns: ':visible'
+							},
+							"action": newexportaction
+						}
+                        /*{
                             extend: 'csv',
                             filename: "{{App_Name()}} - Users",
                             exportOptions: {
@@ -279,12 +360,11 @@
                                     }
                                 });
                             }
-                        }
+                        }*/
                     ],
                 });
 
                 $('#ms_excel').on('click', function() {
-
                     var check_access = '{{Check_Admin_Access()}}';
                     if (check_access == 1) {
                         var table = $('.user-table').DataTable();
@@ -293,7 +373,15 @@
                         toastr.error("You have no right to Download This Files.");
                     }
                 });
-                $('#csv').on('click', function() {
+                $('#ms_excel_all').on('click', function() {
+                    var check_access = '{{Check_Admin_Access()}}';
+                    if (check_access == 1) {
+                        $('.user-table').DataTable().buttons(0,1).trigger();
+                    } else {
+                        toastr.error("You have no right to Download This Files.");
+                    }
+                });
+                /*$('#csv').on('click', function() {
 
                     var check_access = '{{Check_Admin_Access()}}';
                     if (check_access == 1) {
@@ -312,7 +400,7 @@
                     } else {
                         toastr.error("You have no right to Download This Files.");
                     }
-                });
+                });*/
 
                 $('#input_type, #input_login_type').change(function() {
                     table.draw();
@@ -322,5 +410,47 @@
                 });
             });
         });
+		
+		function newexportaction(e, dt, button, config) {
+			var self = this;
+			var oldStart = dt.settings()[0]._iDisplayStart;
+			dt.one('preXhr', function (e, s, data) {
+				// Just this once, load all data from the server...
+				data.start = 0;
+				data.length = 2147483647;
+				dt.one('preDraw', function (e, settings) {
+					// Call the original action function
+					if (button[0].className.indexOf('buttons-copy') >= 0) {
+						$.fn.dataTable.ext.buttons.copyHtml5.action.call(self, e, dt, button, config);
+					} else if (button[0].className.indexOf('buttons-excel') >= 0) {
+						$.fn.dataTable.ext.buttons.excelHtml5.available(dt, config) ?
+							$.fn.dataTable.ext.buttons.excelHtml5.action.call(self, e, dt, button, config) :
+							$.fn.dataTable.ext.buttons.excelFlash.action.call(self, e, dt, button, config);
+					} else if (button[0].className.indexOf('buttons-csv') >= 0) {
+						$.fn.dataTable.ext.buttons.csvHtml5.available(dt, config) ?
+							$.fn.dataTable.ext.buttons.csvHtml5.action.call(self, e, dt, button, config) :
+							$.fn.dataTable.ext.buttons.csvFlash.action.call(self, e, dt, button, config);
+					} else if (button[0].className.indexOf('buttons-pdf') >= 0) {
+						$.fn.dataTable.ext.buttons.pdfHtml5.available(dt, config) ?
+							$.fn.dataTable.ext.buttons.pdfHtml5.action.call(self, e, dt, button, config) :
+							$.fn.dataTable.ext.buttons.pdfFlash.action.call(self, e, dt, button, config);
+					} else if (button[0].className.indexOf('buttons-print') >= 0) {
+						$.fn.dataTable.ext.buttons.print.action(e, dt, button, config);
+					}
+					dt.one('preXhr', function (e, s, data) {
+						// DataTables thinks the first item displayed is index 0, but we're not drawing that.
+						// Set the property to what it was before exporting.
+						settings._iDisplayStart = oldStart;
+						data.start = oldStart;
+					});
+					// Reload the grid with the original page. Otherwise, API functions like table.cell(this) don't work properly.
+					setTimeout(dt.ajax.reload, 0);
+					// Prevent rendering of the full data to the DOM
+					return false;
+				});
+			});
+			// Requery the server with the new one-time export settings
+			dt.ajax.reload();
+		};
     </script>
 @endsection

@@ -25,9 +25,8 @@
                 <a href="{{ route('type') }}" class="btn btn-default mw-120" style="margin-top:-14px">{{__('Label.Types')}}</a>
             </div>
         </div>
-
         <div class="card custom-border-card mt-3">
-            <form id="save_edit_type">
+            <form enctype="multipart/form-data" id="save_edit_type">
                 @csrf
                 <div class="form-row">
                     <div class="col-md-6">
@@ -44,10 +43,28 @@
                                 <option value="1" {{ $result->type == 1 ? 'selected' : ''}}> {{__('Label.Video')}}</option>
                                 <option value="2" {{ $result->type == 2  ? 'selected' : ''}}> {{__('Label.Show')}}</option>
                                 <option value="5" {{ $result->type == 5  ? 'selected' : ''}}> Upcoming</option>
+                                <option value="0"  {{ $result->type == 0 ? 'selected' : ''}}> Web Series</option>
                             </select>
                         </div>
                     </div>
                 </div>
+				<div class="form-row">
+					<div class="col-md-6">
+						<div class="form-group">
+							<label>{{__('Label.IMAGE')}}</label>
+							<input type="file" class="form-control" id="image" name="type_image">
+							<label class="mt-1 text-gray">{{__('Label.Note_Image')}}</label>
+						</div>
+					</div>
+					<div class="col-md-6">
+						<div class="form-group">
+							<div class="custom-file ml-5">
+								<img src="{{$result->image}}" style="height: 120px; width: 120px;" class="img-thumbnail" id="preview-image-before-upload">
+								<input type="hidden" name="old_image" value="{{$result->type_image}}">
+							</div>
+						</div>
+					</div>
+				</div>
                 <div class="text-right">
                     <input type="hidden" value="{{$result->id}}" name="id">
                     <button type="button" class="btn btn-default mw-120" onclick="save_edit_type()">{{__('Label.UPDATE')}}</button>

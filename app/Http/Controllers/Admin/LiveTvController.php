@@ -42,10 +42,15 @@ class LiveTvController extends Controller
             })
             ->addColumn('action', function ($row) {
                 $editUrl = route('livetv.edit', $row->id);
+              if (auth()->user()->id == 3) {
+                    $assignAdsUrl = route('livetv.assignAds', $row->id);
+                    $assignAdsBtn = '<a href="'.$assignAdsUrl.'" title="Assign Ads"><i class="fa-solid fa-rectangle-ad"></i></a>';
+                }
                 $deleteUrl = route('livetv.delete', $row->id);
 
                 return '<div class="d-flex justify-content-center gap-2">
                             <a href="'.$editUrl.'"><i class="fa-regular fa-pen-to-square"></i></a>
+                            <a href="'.$assignAdsUrl.'" title="Assign Ads"><i class="fa-solid fa-rectangle-ad"></i></a>
                             <a href="'.$deleteUrl.'" onclick="return confirm(\'Delete?\')"><i class="fa-solid fa-trash-can"></i></a>
                         </div>';
             })

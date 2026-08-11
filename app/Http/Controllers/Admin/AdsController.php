@@ -5,8 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App;
 use App\Http\Controllers\Controller;
 use App\Models\Ads;
-use App\Models\AdAssignment;
-use App\Services\AdsSocketNotifier;
 use Exception;
 use Illuminate\Http\Request;
 use Validator;
@@ -40,9 +38,6 @@ class AdsController extends Controller
 
                 return DataTables()::of($data->latest()->get())
                     ->addIndexColumn()
-                    ->editColumn('start_after_seconds', function ($row) {
-                        return $row->start_after_seconds_display;
-                    })
                     ->addColumn('active_badge', function ($row) {
                         if ($row->active == 1) {
                             return '<span class="badge badge-success">Active</span>';
@@ -77,7 +72,7 @@ class AdsController extends Controller
     public function save(Request $request)
     { 
         try {
-            $validator = Validator::make($request->all(), $this->rules());
+            $validator = Validator::make($request->all(), $this->rules(false));
             if ($validator->fails()) {
                 $errs = $validator->errors()->all();
                 return response()->json(array('status' => 400, 'errors' => $errs));
@@ -87,7 +82,6 @@ class AdsController extends Controller
             $this->fillAd($ad, $request);
 
             if ($ad->save()) {
-                app(AdsSocketNotifier::class)->notifyAdAssignments($ad->id, 'admin_created_ad');
                 return response()->json(array('status' => 200, 'success' => __('Label.Data Add Successfully')));
             } else {
                 return response()->json(array('status' => 400, 'errors' => __('Label.Data Not Add')));
@@ -114,7 +108,7 @@ class AdsController extends Controller
     public function update(Request $request)
     {
         try {
-            $validator = Validator::make($request->all(), array_merge(['id' => 'required|exists:ads,id'], $this->rules()));
+            $validator = Validator::make($request->all(), array_merge(['id' => 'required|exists:ads,id'], $this->rules(true)));
             if ($validator->fails()) {
                 $errs = $validator->errors()->all();
                 return response()->json(array('status' => 400, 'errors' => $errs));
@@ -122,19 +116,9 @@ class AdsController extends Controller
 
             $ad = Ads::where('id', $request->id)->first();
             if (isset($ad->id)) {
-                $targets = AdAssignment::where('ad_id', $ad->id)
-                    ->get(['assignable_type', 'assignable_id'])
-                    ->map(function ($assignment) {
-                        return [
-                            'type' => $assignment->assignable_type,
-                            'id' => (int) $assignment->assignable_id,
-                        ];
-                    });
-
                 $this->fillAd($ad, $request);
 
                 if ($ad->save()) {
-                    app(AdsSocketNotifier::class)->notifyTargets($targets, 'admin_updated_ad');
                     return response()->json(array('status' => 200, 'success' => __('Label.Data Edit Successfully')));
                 } else {
                     return response()->json(array('status' => 400, 'errors' => __('Label.Data Not Updated')));
@@ -151,20 +135,7 @@ class AdsController extends Controller
     {
         try {
             $ad = Ads::where('id', $id)->first();
-            $targets = collect();
-            if ($ad) {
-                $targets = AdAssignment::where('ad_id', $ad->id)
-                    ->get(['assignable_type', 'assignable_id'])
-                    ->map(function ($assignment) {
-                        return [
-                            'type' => $assignment->assignable_type,
-                            'id' => (int) $assignment->assignable_id,
-                        ];
-                    });
-            }
-
             if ($ad && $ad->delete()) {
-                app(AdsSocketNotifier::class)->notifyTargets($targets, 'admin_deleted_ad');
                 return redirect()->route('ads')->with('success', __('Label.Data Delete Successfully'));
             }
 
@@ -173,17 +144,29 @@ class AdsController extends Controller
             return response()->json(array('status' => 400, 'errors' => $e->getMessage()));
         }
     }
-
-    private function rules()
+    private function rules(bool $isUpdate = false)
     {
         return [
-            'title' => 'required',
+            'title' => 'required|string|max:255',
             'type' => 'required|in:normal,l_band',
-            'media_url' => 'nullable',
             'media_type' => 'required|in:image,video',
-            'click_url' => 'nullable', 
-            'media_image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
-            'start_after_seconds' => ['required', 'regex:/^\s*\d+\s*(,\s*\d+\s*)*$/'],
+
+            'media_url' => [
+                'nullable',
+                'required_if:media_type,video',
+                'url',
+            ],
+
+            'click_url' => 'nullable|url',
+
+            'media_image' => [
+                $isUpdate ? 'nullable' : 'required_if:media_type,image',
+                'image',
+                'mimes:jpg,jpeg,png,webp',
+                'max:5120',
+            ],
+
+            'start_after_seconds' => 'required|integer|min:0',
             'repeat_every_seconds' => 'required|integer|min:0',
             'duration_seconds' => 'required|integer|min:0',
             'skippable_after_seconds' => 'required|integer|min:0',
@@ -194,14 +177,34 @@ class AdsController extends Controller
         ];
     }
 
-    private function fillAd(Ads $ad, Request $request)
+    private function rulesOLD()
+    {
+        return [
+            'title' => 'required',
+            'type' => 'required|in:normal,l_band',
+            'media_url' => 'nullable',
+            'media_type' => 'required|in:image,video',
+            'click_url' => 'nullable', 
+            'media_image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'start_after_seconds' => 'required|integer|min:0',
+            'repeat_every_seconds' => 'required|integer|min:0',
+            'duration_seconds' => 'required|integer|min:0',
+            'skippable_after_seconds' => 'required|integer|min:0',
+            'priority' => 'required|integer|min:0',
+            'active' => 'required|in:0,1',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+        ];
+    }
+
+    private function fillAdOLD(Ads $ad, Request $request)
     {
         $ad->title = $request->title;
         $ad->type = $request->type;
         $ad->media_url = $request->media_url ?: null;
         $ad->media_type = $request->media_type;
         $ad->click_url = $request->click_url ?: null;
-        $ad->start_after_seconds = json_encode(Ads::normalizeStartAfterSeconds($request->start_after_seconds));
+        $ad->start_after_seconds = $request->start_after_seconds;
         $ad->repeat_every_seconds = $request->repeat_every_seconds;
         $ad->duration_seconds = $request->duration_seconds;
         $ad->skippable_after_seconds = $request->skippable_after_seconds;
@@ -217,6 +220,66 @@ class AdsController extends Controller
                 $ad->media_url = 'images/ads/' . $filename;
             }
         } else {
+            $ad->media_url = $request->media_url ?: null;
+        }
+    }
+
+    private function fillAd(Ads $ad, Request $request)
+    {
+        $ad->title = $request->title;
+        $ad->type = $request->type;
+        $ad->media_type = $request->media_type;
+        $ad->click_url = $request->click_url ?: null;
+        $ad->start_after_seconds = $request->start_after_seconds;
+        $ad->repeat_every_seconds = $request->repeat_every_seconds;
+        $ad->duration_seconds = $request->duration_seconds;
+        $ad->skippable_after_seconds = $request->skippable_after_seconds;
+        $ad->priority = $request->priority;
+        $ad->active = $request->active;
+        $ad->start_date = $request->start_date ?: null;
+        $ad->end_date = $request->end_date ?: null;
+
+        if ($request->media_type === 'image') {
+
+            // Only replace image when a new image is uploaded.
+            if ($request->hasFile('media_image')) {
+
+                // Delete previous local image, if available.
+                if (
+                    !empty($ad->media_url) &&
+                    !filter_var($ad->media_url, FILTER_VALIDATE_URL)
+                ) {
+                    $oldImagePath = public_path($ad->media_url);
+
+                    if (file_exists($oldImagePath) && is_file($oldImagePath)) {
+                        unlink($oldImagePath);
+                    }
+                }
+
+                $image = $request->file('media_image');
+
+                $directory = public_path('images/ads');
+
+                if (!file_exists($directory)) {
+                    mkdir($directory, 0755, true);
+                }
+
+                $filename = time()
+                    . '_'
+                    . uniqid()
+                    . '.'
+                    . $image->getClientOriginalExtension();
+
+                $image->move($directory, $filename);
+
+                $ad->media_url = 'images/ads/' . $filename;
+            }
+
+            // When no new image is uploaded, keep existing media_url unchanged.
+
+        } else {
+
+            // For video, save the submitted video URL.
             $ad->media_url = $request->media_url ?: null;
         }
     }

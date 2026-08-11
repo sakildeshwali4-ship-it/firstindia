@@ -33,7 +33,7 @@
                         <textarea class="form-control" rows="5" name="message" placeholder="{{__('Label.Start Write Here...')}}"></textarea>
                     </div>
                 </div>
-                <div class="form-row mt-3">
+                <div class="form-row mt-3" style="display:none;">
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>{{__('Label.IMAGE (OPTIONAL)')}}</label>

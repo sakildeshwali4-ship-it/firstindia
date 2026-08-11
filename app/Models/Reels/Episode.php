@@ -2,12 +2,15 @@
 
 namespace App\Models\Reels;
 
+use App\Models\Concerns\ResolvesMediaUrls;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Episode extends Model
 {
+    use ResolvesMediaUrls;
+
     protected $table = 'reel_episodes';
 
     protected $fillable = [
@@ -59,5 +62,15 @@ class Episode extends Model
     public function userLikes(): HasMany
     {
         return $this->hasMany(UserEpisodeLike::class, 'episode_id');
+    }
+
+    public function getThumbnailUrlAttribute(?string $value): ?string
+    {
+        return $this->resolveMediaUrl($value);
+    }
+
+    public function getVideoUrlAttribute(?string $value): ?string
+    {
+        return $this->resolveMediaUrl($value);
     }
 }

@@ -21,18 +21,20 @@ class AdminController extends Controller
 {
     public function dashboard()
     {
+        //error_reporting(E_ALL);
+        //ini_set('display_errors', '1');
         try {
 
-            $params['total_user'] = Users::get()->count();
-            $params['total_channel']  = Channel::get()->count();
-            $params['total_video'] = Video::get()->count();
-            $params['total_show']  = TVShow::get()->count();
-            $params['total_cast'] = Cast::get()->count();
+            $params['total_user'] = Users::count();
+            $params['total_channel']  = Channel::count();
+            $params['total_video'] = Video::count();
+            $params['total_show']  = TVShow::count();
+            $params['total_cast'] = Cast::count();
             $params['total_rent_transaction'] = RentTransction::sum('price');
             $params['total_month_rent_transaction'] = RentTransction::whereMonth('created_at', date('m'))->whereYear('created_at', date('Y'))->sum('price');
-            $params['total_package'] = Package::get()->count();
-            $params['total_transaction'] = Transction::sum('amount');
-            $params['total_month_transaction'] = Transction::whereMonth('created_at', date('m'))->whereYear('created_at', date('Y'))->sum('amount');
+            $params['total_package'] = Package::count();
+            $params['total_transaction'] = Transction::where('payment_status_numeric', 1)->where('package_id', '>', 0)->sum('amount');
+            $params['total_month_transaction'] = Transction::where('payment_status_numeric', 1)->where('package_id', '>', 0)->whereMonth('created_at', date('m'))->whereYear('created_at', date('Y'))->sum('amount');
 
             // User Statistice
             $user_data = [];

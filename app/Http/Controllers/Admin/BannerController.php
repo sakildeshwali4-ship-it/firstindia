@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Banner;
 use App\Models\TVShow;
 use App\Models\Type;
+use App\Models\WebSeries; 
 use App\Models\Video;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -35,6 +36,7 @@ class BannerController extends Controller
     }
     public function save(Request $request)
     {
+       
         try {
             if (Auth::guard('admin')->user()->type != 1) {
                 return response()->json(array('status' => 400, 'errors' => __('Label.You have no right to add, edit, and delete')));
@@ -49,11 +51,14 @@ class BannerController extends Controller
                 if ($validator->fails()) {
                     $errs = $validator->errors()->all();
                     return response()->json(array('status' => 400, 'errors' => $errs));
-                }
-
+                } 
                 $banner = new Banner();
                 $banner->is_home_screen = $request->is_home_screen;
                 $banner->type_id = $request->type_id;
+
+                if($request->video_type =='0'){
+                    $banner->is_webseries = 1;
+                }
                 $banner->video_type = $request->video_type;
                 $banner->upcoming_type = isset($request->upcoming_type) ? $request->upcoming_type : 0;
                 $banner->video_id = $request->video_id;
@@ -70,14 +75,16 @@ class BannerController extends Controller
         }
     }
     public function TypeByVideo(Request $request)
-    {
-        try {
-            if ($request->type == 1) {
+    { 
+        try { 
+            if ($request->type == 0) {
+                $data = WebSeries::where('isActive', 1)->get();
+            }  
+            else if ($request->type == 1) {
                 $data = Video::where('type_id', $request->type_id)->get();
             } else if ($request->type == 2) {
                 $data = TVShow::where('type_id', $request->type_id)->get();
-            } else if ($request->type == 5) {
-
+            } else if ($request->type == 5) { 
                 $data = array();
                 if ($request->upcoming_type == 1) {
                     $data = Video::where('type_id', $request->type_id)->get();
@@ -92,6 +99,7 @@ class BannerController extends Controller
     }
     public function BannerList(Request $request)
     {
+       
         try {
 
             if ($request->is_home_screen == 1) {
@@ -120,11 +128,19 @@ class BannerController extends Controller
                     }
                 }
             } else {
-
+ 
                 $data = Banner::where('type_id', $request->type_id)->where('is_home_screen', $request->is_home_screen)->orderBy('id', 'desc')->with('type')->get();
+                
                 for ($i = 0; $i < count($data); $i++) {
 
-                    if ($data[$i]->video_type == 1) {
+                    if ($data[$i]->video_type == 0) {
+                        $video = WebSeries::select('id', 'title')->where('id', $data[$i]->video_id)->first(); 
+                        $data[$i]['video'] = [
+                            'id' => $video->id, 
+                            'name' => $video->title
+                        ];
+                    }
+                    else if ($data[$i]->video_type == 1) {
 
                         $video = Video::select('id', 'name')->where('id', $data[$i]->video_id)->first();
                         $data[$i]['video'] = $video;

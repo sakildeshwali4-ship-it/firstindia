@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/clear-cache', function() {
@@ -10,6 +11,16 @@ Route::get('/clear-cache', function() {
     Artisan::call('config:clear');
     Artisan::call('event:clear');
 });
+
+Route::get('/storage/{path}', function (string $path) {
+    $fullPath = storage_path('app/public/' . $path);
+
+    abort_unless(File::exists($fullPath), 404);
+
+    return response()->file($fullPath, [
+        'Cache-Control' => 'public, max-age=86400',
+    ]);
+})->where('path', '.*');
 
 /*
 |--------------------------------------------------------------------------

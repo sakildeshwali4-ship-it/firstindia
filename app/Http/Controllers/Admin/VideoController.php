@@ -16,7 +16,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Validator;
 use Exception;
-
+use App\Exports\ExportVideoViews;
+use Maatwebsite\Excel\Facades\Excel;
 // Video Type = 1-Video, 2-Show, 3-Language, 4-Category, 5-Upcoming
 // Video Upload Type = server_video, external, youtube, vimeo
 // Subtitle Type = server_video, external
@@ -24,11 +25,13 @@ use Exception;
 
 class VideoController extends Controller
 {
+    private $folder_exlusive_movie = "exlusive_movie";
     private $folder_video = "video";
     private $folder_cast = "cast";
 
     public function index(Request $request)
     {
+        
         try {
 
             $input_search = $request['input_search'];
@@ -37,14 +40,14 @@ class VideoController extends Controller
             if ($input_search != null && isset($input_search)) {
 
                 if ($input_type != 0) {
-
+                    
+                    
                     $video_list = Video::where('name', 'LIKE', "%{$input_search}%")
                         ->where('video_type', '!=', 5)
                         ->where('type_id', $input_type)
                         ->with('type')
                         ->orderBy('id', 'desc')->paginate(15);
                 } else {
-
                     $video_list = Video::where('name', 'LIKE', "%{$input_search}%")
                         ->where('video_type', '!=', 5)
                         ->with('type')
@@ -58,17 +61,19 @@ class VideoController extends Controller
                     $video_list = Video::where('video_type', '!=', 5)->with('type')->orderBy('id', 'desc')->paginate(15);
                 }
             }
-
+            
             imageNameToUrl($video_list, 'thumbnail', $this->folder_video);
             imageNameToUrl($video_list, 'landscape', $this->folder_video);
             videoNameToUrl($video_list, 'video_320', $this->folder_video);
 
             $type = Type::where('type', 1)->latest()->get();
-			$pageNo = 1;
-			if(!empty($request->get('page'))){
-			   $pageNo = $request->get('page');
+			
+			$queryArray = [];
+			if(!empty($_GET)){
+			   $queryArray = $_GET;
 			}
-            return view('admin.video.index', ['result' => $video_list, 'type' => $type, 'pageNo' => $pageNo]);
+            
+            return view('admin.video.index', ['result' => $video_list, 'type' => $type, 'queryArray' => $queryArray]);
         } catch (Exception $e) {
             return response()->json(array('status' => 400, 'errors' => $e->getMessage()));
         }
@@ -79,9 +84,11 @@ class VideoController extends Controller
         try {
 
             $params['channel'] = Channel::get();
+            
             $params['category'] = Category::get();
             $params['language'] = Language::get();
             $params['type'] = Type::where('type', 1)->get();
+            
             $params['cast'] = Cast::get();
 
             return view('admin.video.add', $params);
@@ -92,6 +99,7 @@ class VideoController extends Controller
 
     public function save(Request $request)
     {
+        
         try {
             if ($request->video_upload_type == "server_video") {
                 $validator = Validator::make($request->all(), [
@@ -137,8 +145,28 @@ class VideoController extends Controller
             if(!empty($request->cast_id)){
                 $cast_id = implode(',', $request->cast_id);
             }
-
+			$input = $request->all();
             $video = new Video();
+            $video->is_exclusive_movie = isset($request->is_exclusive_movie) ? $request->is_exclusive_movie : 0;
+			if($video->is_exclusive_movie == 1) {
+				$exclusive_movie_data = [];
+				$exclusive_movie_data['trailer_url'] = !empty($input['exclusive_movie_data']['trailer_url']) ? $input['exclusive_movie_data']['trailer_url'] : '';
+				$exclusive_movie_data['trailer_image'] = '';
+				if (!empty($input['exclusive_movie_data']['trailer_image'])) {
+					$exclusive_movie_data['trailer_image'] = saveImage($input['exclusive_movie_data']['trailer_image'], $this->folder_exlusive_movie, true);
+				}
+				$exclusive_movie_data['teaser_url'] = !empty($input['exclusive_movie_data']['teaser_url']) ? $input['exclusive_movie_data']['teaser_url'] : '';
+				$exclusive_movie_data['teaser_image'] = '';
+				if (!empty($input['exclusive_movie_data']['teaser_image'])) {
+					$exclusive_movie_data['teaser_image'] = saveImage($input['exclusive_movie_data']['teaser_image'], $this->folder_exlusive_movie, true);
+				}
+				$exclusive_movie_data['promo_url'] = !empty($input['exclusive_movie_data']['promo_url']) ? $input['exclusive_movie_data']['promo_url'] : '';
+				$exclusive_movie_data['promo_image'] = '';
+				if (!empty($input['exclusive_movie_data']['promo_image'])) {
+					$exclusive_movie_data['promo_image'] = saveImage($input['exclusive_movie_data']['promo_image'], $this->folder_exlusive_movie, true);
+				}
+				$video->exclusive_movie_data = json_encode($exclusive_movie_data);
+			}
             $video->channel_id = isset($request->channel_id) ? $request->channel_id : 0;
             $video->category_id = $category_id;
             $video->language_id = $language_id;
@@ -156,6 +184,10 @@ class VideoController extends Controller
             $video->skip_enable = $request->skip_enable;
             $video->skip_start  = $request->skip_enable ? $request->skip_start : null;
             $video->skip_end    = $request->skip_enable ? $request->skip_end : null;
+			
+			if(!empty($input['related_videos'])) {
+				$video->related_videos = implode(",", $input['related_videos']);
+			}
 
             // Release Data
             $video->release_date = "";
@@ -306,9 +338,13 @@ class VideoController extends Controller
         try {
 			$idPage = explode('_', $id);
 			$id = $idPage[0];
-			$pageNo = ['page' => 1];
+			/*$pageNo = ['page' => 1];
 			if(!empty($idPage[1])) {
 				$pageNo['page'] = $idPage[1];
+			}*/
+			$queryArray = [];
+			if(!empty($_GET)){
+			   $queryArray = $_GET;
 			}
             $params['result'] = Video::where('id', $id)->first();
 
@@ -320,8 +356,14 @@ class VideoController extends Controller
             $params['language'] = Language::get();
             $params['type'] = Type::where('type', 1)->get();
             $params['cast'] = Cast::get();
-            $params['page'] = $pageNo;
-
+            $params['queryArray'] = $queryArray;
+            $params['result']['exclusive_movie_data'] = json_decode($params['result']['exclusive_movie_data'], 1);
+			if(!empty($params['result']['related_videos'])) {
+				$params['related_video_options'] = Video::whereIn('id', explode(',', $params['result']['related_videos']))->pluck('name', 'id')->toArray();
+			} else {
+				$params['related_video_options'] = [];
+			}
+			//prd($params['related_video_options']);
             return view('admin.video.edit', $params);
         } catch (Exception $e) {
             return response()->json(array('status' => 400, 'errors' => $e->getMessage()));
@@ -369,9 +411,32 @@ class VideoController extends Controller
             }
 
             $video = Video::where('id', $request->id)->first();
-
+			$input = $request->all();
             if (isset($video->id)) {
-
+				$video->is_exclusive_movie = isset($request->is_exclusive_movie) ? $request->is_exclusive_movie : 0;
+				if($video->is_exclusive_movie == 1) {
+					$exclusive_movie_data = json_decode($video->exclusive_movie_data, 1);
+					$exclusive_movie_data['trailer_url'] = $input['exclusive_movie_data']['trailer_url'];
+					if (!empty($input['exclusive_movie_data']['trailer_image'])) {
+						$exclusive_movie_data['trailer_image'] = saveImage($input['exclusive_movie_data']['trailer_image'], $this->folder_exlusive_movie, true);
+					} else {
+						$exclusive_movie_data['trailer_image'] = $input['trailer_image_old'];
+					}
+					$exclusive_movie_data['teaser_url'] = $input['exclusive_movie_data']['teaser_url'];
+					if (!empty($input['exclusive_movie_data']['teaser_image'])) {
+						$exclusive_movie_data['teaser_image'] = saveImage($input['exclusive_movie_data']['teaser_image'], $this->folder_exlusive_movie, true);
+					} else {
+						$exclusive_movie_data['teaser_image'] = $input['teaser_image_old'];
+					}
+					$exclusive_movie_data['promo_url'] = $input['exclusive_movie_data']['promo_url'];
+					if (!empty($input['exclusive_movie_data']['promo_image'])) {
+						$exclusive_movie_data['promo_image'] = saveImage($input['exclusive_movie_data']['promo_image'], $this->folder_exlusive_movie, true);
+					} else {
+						$exclusive_movie_data['promo_image'] = $input['promo_image_old'];
+					}
+					$video->exclusive_movie_data = json_encode($exclusive_movie_data);
+				}
+				
                 $category_id = implode(',', $request->category_id);
                 $language_id = implode(',', $request->language_id);
                 $cast_id = 0;
@@ -395,6 +460,12 @@ class VideoController extends Controller
                 $video->skip_enable  = $request->skip_enable;
                 $video->skip_start   = $request->skip_enable ? $request->skip_start : null;
                 $video->skip_end     = $request->skip_enable ? $request->skip_end : null;
+				
+				if(!empty($input['related_videos'])) {
+					$video->related_videos = implode(",", $input['related_videos']);
+				} else {
+					$video->related_videos = null;
+				}
 
                 // Release Data
                 $video->release_date = "";
@@ -628,7 +699,7 @@ class VideoController extends Controller
                 return response()->json(array('status' => 400, 'errors' => __('Label.Data Not Updated')));
             }
         } catch (Exception $e) {
-            return response()->json(array('status' => 400, 'errors' => $e->getMessage()));
+            return response()->json(array('status' => 400, 'errors' => $e->getMessage().$e->getLine()));
         }
     }
 
@@ -1012,4 +1083,34 @@ class VideoController extends Controller
             return response()->json(array('status' => 400, 'errors' => $e->getMessage()));
         }
     }
+	
+	public function export_video_views(Request $request){
+		$filename = 'video_views'.date('Y_m_d H_i_s').'.xlsx';
+        return Excel::download(new ExportVideoViews, $filename);
+    }
+	
+	public function search_related_videos (Request $request) {
+		try {;
+			$postData = $request->all();
+            $validation = Validator::make(
+               $postData ,
+                [
+                    'term' => 'required'
+                ]
+            );
+            if ($validation->fails()) {
+                $data['status'] = 400;
+                $data['message'] = __('api_msg.please_enter_required_fields');
+                return $data;
+            }
+			$searchTerms = Video::query()->select('id', 'name as text')->where('name', 'LIKE', '%'.$postData['term'].'%');
+			if(!empty($postData['selected'])) {
+				$searchTerms->whereNotIn('id', $postData['selected']);
+			}
+			$searchTerms = $searchTerms->limit(10)->get();
+			return response()->json(array('status' => 200, 'results' => $searchTerms));
+		} catch (Exception $e) {
+            return response()->json(array('status' => 400, 'errors' => $e->getMessage()));
+        }	
+	}
 }

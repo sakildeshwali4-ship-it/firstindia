@@ -36,6 +36,7 @@
                 <thead>
                     <tr >
                         <th> {{__('Label.#')}} </th>
+						<th> {{__('Label.Image')}} </th>
                         <th> {{__('Label.Name')}} </th>
                         <th> {{__('Label.Type')}} </th>
                         <th> {{__('Label.Action')}} </th>
@@ -77,8 +78,19 @@
                             name: 'DT_RowIndex'
                         },
                         {
+                            data: 'type_image',
+                            name: 'type_image',
+                            orderable: false,
+                            searchable: false,
+                            render: function(data, type, full, meta) {
+                                return "<a href='" + data + "' target='_blank' title='Watch'><img src='" + data + "' class='img-thumbnail' style='height:55px; width:55px'></a>";
+                            },
+                        },
+                        {
                             data: 'name',
                             name: 'name',
+                            orderable: false,
+                            searchable: false,
                             render: function(data, type, full, meta) {
                                 if (data) {
                                     return data;

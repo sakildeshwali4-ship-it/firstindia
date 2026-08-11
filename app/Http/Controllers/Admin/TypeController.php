@@ -17,6 +17,7 @@ use Exception;
 // Video Type = 1-Video, 2-Show, 3-Language, 4-Category, 5-Upcoming
 class TypeController extends Controller
 {
+	private $folder = "type_image";
     public function index()
     {
         try {
@@ -37,6 +38,7 @@ class TypeController extends Controller
                 } else {
                     $data = Type::orderby('position')->get();
                 }
+				imageNameToUrl($data, 'type_image', $this->folder);
                 return DataTables()::of($data)
                     ->addIndexColumn()
                     ->addColumn('action', function ($row) {
@@ -67,16 +69,25 @@ class TypeController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 'name' => 'required|min:2',
-                'type' => 'required'
+                'type' => 'required',
+                'type_image' => 'required|image|mimes:jpeg,png,jpg|max:2048',
             ]);
             if ($validator->fails()) {
                 $errs = $validator->errors()->all();
                 return response()->json(array('status' => 400, 'errors' => $errs));
             }
-
+            
             $type = new Type();
             $type->name = $request->name;
             $type->type = $request->type;
+
+            if($request->type =='0'){
+                $type->is_webseries = 1;
+            }
+			
+            $org_name = $request->file('type_image');
+            $type->type_image = saveImage($org_name, $this->folder);
+			
             if ($type->save()) {
                 return response()->json(array('status' => 200, 'success' => __('Label.Data Add Successfully')));
             } else {
@@ -100,7 +111,8 @@ class TypeController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 'name' => 'required|min:2',
-                'type' => 'required'
+                'type' => 'required',
+                'type_image' => 'image|mimes:jpeg,png,jpg|max:2048',
             ]);
             if ($validator->fails()) {
                 $errs = $validator->errors()->all();
@@ -111,6 +123,17 @@ class TypeController extends Controller
             if (isset($type->id)) {
                 $type->name = $request->name;
                 $type->type = $request->type;
+
+                 if($request->type =='0'){
+                    $type->is_webseries = 1;
+                }
+				
+				if (isset($request->type_image)) {
+                    $files = $request->type_image;
+                    $type->type_image = saveImage($files, $this->folder);
+                    deleteImageToFolder($this->folder, basename($request->old_image));
+                }
+				
                 if ($type->save()) {
                     return response()->json(array('status' => 200, 'success' => __('Label.Data Edit Successfully')));
                 } else {

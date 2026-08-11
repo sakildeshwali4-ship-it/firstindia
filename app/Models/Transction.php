@@ -34,4 +34,9 @@ class Transction extends Model
     {
         return $this->belongsTo(Users::class, 'user_id');
     }
+
+    public function audition()
+    {
+        return $this->belongsTo(Audition::class, 'audition_id');
+    }
 }

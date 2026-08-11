@@ -7,14 +7,21 @@
         <!-- mobile title -->
         <h1 class="page-title-sm">@yield('title')</h1>
 
-        <div class="row">
-            <div class="col-sm-10">
+         <div class="row">
+            <div class="col-sm-7">
                 <ol class="breadcrumb mb-0">
                     <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">{{__('Label.Dashboard')}}</a></li>
                     <li class="breadcrumb-item active" aria-current="page">E-News Paper</li>
                 </ol>
             </div>
-            <div class="col-sm-2 d-flex align-items-center justify-content-end">
+            
+            <div class="col-sm-5 d-flex align-items-center justify-content-end">
+            @if(Auth::user()->id == 3)
+                <!-- <a href="{{ route('views.tv_report') }}" class="btn btn-default mw-120 mr-4" style="margin-top: -14px;">View Reports Live TV</a> -->
+                <a href="{{ route('views.report') }}" class="btn btn-default mw-120 mr-4" style="margin-top: -14px;">View Reports</a>
+            @endif
+                <a href="{{ route('user.report') }}" class="btn btn-default mw-120 mr-4" style="margin-top: -14px;">Report Users</a>
+             
                 <a href="{{ route('enews.create') }}" class="btn btn-default mw-120" style="margin-top: -14px;">Add New</a>
             </div>
         </div>

@@ -6,7 +6,10 @@
 <style>.card-title { color:#fff; }</style>
     <div class="body-content">
         <!-- mobile title -->
-        <h1 class="page-title-sm">@yield('title')</h1>
+        <h1 class="page-title-sm">@yield('title')
+
+{{ Request()->parameter }}
+</h1>
 
         <div class="row">
             <div class="col-sm-12">
@@ -82,11 +85,17 @@
                                     <!-- <img src="{{ asset('assets/imgs/eye.png') }}" class="dot-icon" /> -->
                                     {{__('Label.Details')}}
                                 </a>
-                                <a class="dropdown-item" href="{{ route('editVideo', ['id' => $value->id.'_'.$pageNo])}}">
+                                <a class="dropdown-item" href="{{ route('editVideo', array_merge(['id' => $value->id], $queryArray))}}">
                                 <i class="fa-regular fa-pen-to-square fa-2xl dot-icon"></i>
                               
                                     <!-- <img src="{{ asset('assets/imgs/edit.png') }}" class="dot-icon" /> -->
                                     {{__('Label.Edit')}}
+                                </a>
+                                <a class="dropdown-item" href="{{ route('videoAssignAds', ['id' => $value->id])}}">
+                                  <?php if(Auth::user()->id == 3) { ?>   
+                                <i class="fa-solid fa-rectangle-ad fa-2xl dot-icon"></i>
+                                    Assign Ads
+                                    <?php } ?>
                                 </a>
                                 <a class="dropdown-item" href="{{ route('deleteVideo', ['id' => $value->id])}}" onclick="return confirm('Are you sure !!! You want to Delete this Video ?')">
                                 <i class="fa-solid fa-trash-can fa-2xl dot-icon"></i>
@@ -131,7 +140,7 @@
         <!-- Pagination -->
         <div class="d-flex justify-content-between align-items-center">
             <div> Showing {{ $result->firstItem() }} to {{ $result->lastItem() }} of total {{$result->total()}} entries </div>
-            <div class="pb-5"> {{ $result->links() }} </div>
+            <div class="pb-5"> {{ $result->withQueryString()->links() }} </div>
         </div>
     </div>
 @endsection

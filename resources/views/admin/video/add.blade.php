@@ -3,6 +3,9 @@
 @section('title', __('Label.Add Video'))
 
 @section('content')
+<style>
+.select2-search__field { color: #fff; }
+</style>
     <div class="body-content">
         <!-- mobile title -->
         <h1 class="page-title-sm">@yield('title')</h1>
@@ -77,7 +80,7 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label>{{__('Label.Type')}}</label>
-                                <select class="form-control" name="type_id">
+                                <select class="form-control" name="type_id" id="video_type">
                                     <option value=""> {{__('Label.Select Type')}}</option>
                                     @foreach ($type as $key => $value)
                                     <option value="{{ $value->id}}">
@@ -87,7 +90,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-6">
+						<div class="col-md-6">
                             <div class="form-group">
                                 <label>{{__('Label.Channel')}}</label>
                                 <select class="form-control" name="channel_id">
@@ -99,6 +102,56 @@
                                     @endforeach
                                 </select>
                             </div>
+                        </div>
+						<div class="col-md-6" id="is_exclusive_movie_wrapper">
+                            <div class="form-group">
+                                <label>Is Exclusive</label>
+                                <select class="form-control" name="is_exclusive_movie" id="is_exclusive_movie">
+                                    <option value="0">{{__('Label.No')}}</option>
+                                    <option value="1">{{__('Label.Yes')}}</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+					
+					<div class="form-row" id="exclusive_movie_fieds_wrapper" style="display:none;">
+                        <div class="col-md-8">
+                            <div class="form-group">
+                                <label>Trailer URL</label>
+                                <input type="url" name="exclusive_movie_data[trailer_url]" class="form-control" placeholder="Enter Trailer Url">
+                            </div>
+                        </div>
+						<div class="form-group col-lg-4 subtitle_box">
+							<label>Trailer Placeholder Image</label>
+							<div class="form-group">
+								<input type="file" id="trailer_image" name="exclusive_movie_data[trailer_image]" class="form-control">
+							</div>
+                        </div>
+						
+						<div class="col-md-8">
+                            <div class="form-group">
+                                <label>Teaser URL</label>
+                                <input type="url" name="exclusive_movie_data[teaser_url]" class="form-control" placeholder="Enter Teaser Url">
+                            </div>
+                        </div>
+						<div class="form-group col-lg-4 subtitle_box">
+							<label>Teaser Placeholder Image</label>
+							<div class="form-group">
+								<input type="file" id="teaser_image" name="exclusive_movie_data[teaser_image]" class="form-control">
+							</div>
+                        </div>
+						
+						<div class="col-md-8">
+                            <div class="form-group">
+                                <label>Promo URL</label>
+                                <input type="url" name="exclusive_movie_data[promo_url]" class="form-control" placeholder="Enter Promo Url">
+                            </div>
+                        </div>
+						<div class="form-group col-lg-4 subtitle_box">
+							<label>Promo Placeholder Image</label>
+							<div class="form-group">
+								<input type="file" id="promo_image" name="exclusive_movie_data[promo_image]" class="form-control">
+							</div>
                         </div>
                     </div>
                     <div class="form-row">
@@ -281,7 +334,8 @@
                         </div>
                     </div>
                 </div>
-                
+
+
                 <div class="custom-border-card">
                     <div class="form-row">
                         <div class="form-group col-lg-6">
@@ -469,6 +523,14 @@
                         </div>
                     </div>
                 </div>
+				<div class="custom-border-card">
+					<div class="form-row">
+                        <div class="form-group col-lg-12">
+                            <label>Related Videos</label>
+                            <select name="related_videos[]" class="form-control" id="related_videos"></select>
+                        </div>
+                    </div>
+                </div>
                 <div class=" text-right">
                     <button type="button" class="btn btn-default mw-120" onclick="save_video()">{{__('Label.SAVE')}}</button>
                 </div>
@@ -524,6 +586,46 @@
         }
 
         $(document).ready(function() {
+			
+			/*$('#video_type').change(function() {
+				if($(this).val() == 4) {
+					$('#is_exclusive_movie_wrapper').show();
+				} else {
+					$('#is_exclusive_movie_wrapper').hide();
+					$('#exclusive_movie_fieds_wrapper').hide();
+					$('#is_exclusive_movie').val('0');
+				}
+			});*/
+			
+			$('#is_exclusive_movie').change(function() {
+				if($(this).val() == 1) {
+					$('#exclusive_movie_fieds_wrapper').show();
+				} else {
+					$('#exclusive_movie_fieds_wrapper').hide();
+				}
+			});
+			
+			$("#related_videos").select2({
+                placeholder: "Select Related Videos",
+				minimumInputLength: 4,
+				maximumSelectionLength: 20,
+				multiple: true,
+                ajax: {
+                    type: "POST",
+                    url: "{{route('search_related_videos')}}",
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+					data: function (params) {
+						return {
+							term: params.term, // search term
+							selected: $("#related_videos").val()
+						};
+					},
+					dataType: 'json'
+				}
+            });
+			
             $("#category_id").select2();
             $(".selectd2").select2({
                 placeholder: "{{__('Label.Select Category')}}"
@@ -599,6 +701,7 @@
                     $('input[name="skip_end"]').val('');
                 }
             });
+
 
         });
 

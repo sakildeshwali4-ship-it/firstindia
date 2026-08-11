@@ -8,7 +8,11 @@ use Validator;
 use Exception;
 use Illuminate\Support\Facades\Storage;
 use App\Jobs\SendENewsNotificationJob; 
+use App\Jobs\SendGlobalPushJob; 
 use Carbon\Carbon;
+use App\Models\Users;
+use Illuminate\Support\Facades\Log;
+use DB;
 
 class ENewspaperController extends Controller
 {
@@ -20,7 +24,7 @@ class ENewspaperController extends Controller
 
     public function enewsData(Request $request)
     {
-        $query = ENewspaper::query();
+        $query = ENewspaper::orderBy('id', 'desc');
  
         if ($request->language) {
             $query->where('type', $request->language);
@@ -40,7 +44,8 @@ class ENewspaperController extends Controller
                 return asset($row->pdf_file);
             }) 
             ->addColumn('action', function ($row) {
-                        $btn = '<div class="d-flex justify-content-center gap-2">';
+                        $btn = '<div class="d-flex justify-content-center gap-2">'; 
+                        // $btn .= '<a href="'. route('enews.view_reads',$row->id) .'" class="btn btn-primary" title="View Reads">View Reads</a>';
                         $btn .= '<a href="' . route('enews.edit',$row->id) . '" title="Edit"><i class="fa-regular fa-pen-to-square"></i></a>';
                         $btn .= '<a href="' . route('enews.delete',$row->id) . '" title="Delete" onclick="return confirm(\'Are you sure !!! You want to Delete this Channel ?\')"><i class="fa-solid fa-trash-can"></i></a></div>';
                         return $btn;
@@ -60,8 +65,8 @@ class ENewspaperController extends Controller
             $validator = Validator::make($request->all(), [
                 'type'            => 'required|in:hindi,english',
                 'date'            => 'required|date',
-                'pdf_file'        => 'required|mimes:pdf',
-                'highlight_image' => 'nullable|mimetypes:image/png,image/jpeg,image/jpg',
+                'pdf_file'        => 'required|mimes:pdf|max:204800',
+                'highlight_image' => 'nullable|mimetypes:image/png,image/jpeg,image/jpg|max:204800',
             ]);
 
             if ($validator->fails()) {
@@ -106,17 +111,7 @@ class ENewspaperController extends Controller
 
                 $highlightPath = 'images/enews/images/' . $imgFileName;
             }
-
-
-            // $pdfFileName = time() . '_' . str_replace(' ', '_', $request->file('pdf_file')->getClientOriginalName());
-            // $pdfPath = $request->file('pdf_file')->storeAs('enews/pdf', $pdfFileName, 'public');
-
-            // $highlightPath = null;
-
-            // if ($request->hasFile('highlight_image')) {
-            //     $imgFileName = time() . '_' . str_replace(' ', '_', $request->file('highlight_image')->getClientOriginalName());
-            //     $highlightPath = $request->file('highlight_image')->storeAs('enews/images', $imgFileName, 'public');
-            // }
+ 
 
             $news = ENewspaper::create([
                 'type'            => $request->type,
@@ -125,21 +120,61 @@ class ENewspaperController extends Controller
                 'highlight_image' => $highlightPath,
                 'status'          => $request->status ?? 1,
             ]);
+	   
+       if($request->type =="english" || $request->type =="English"){
 
-            $formattedDate = Carbon::parse($request->date)->format('d F Y');
+        Log::info("ENews Constroller start");
+		$formattedDate = Carbon::parse($request->date)->format('d F Y');
 
-            $title = "New E-Newspaper Available!";
-            $body  = "Today's ({$formattedDate}) {$request->type} edition is now live.";
+            $title = "Today’s Newspaper is Live";
+            $body  = "Hindi & English E-Newspapers are now available on First India Plus";
+            // SendGlobalPushJob::dispatch(
+            //         $title ,
+            //         $body
+            //     );
+            SendENewsNotificationJob::dispatch(
+                $title,
+                $body,
+                [
+                    'type' => 'enews',
+                    'date' => $formattedDate
+                ]
+            )->onQueue('enews');
 
-            dispatch(new SendENewsNotificationJob($title, $body));
+       }
 
+       //Log::info("ENews Constroller end");      
+	 
+
+            //$testUserIds = [83624, 3552, 3]; // yaha apne 3-4 users ki ID dalo
+
+		
+
+		//$allTokens = Users::whereIn('id', $testUserIds)->whereNotNull('device_token')
+    //->pluck('device_token')
+    //->toArray();
+
+//$chunkSize = 300; // 300 per job – best balance
+
+//foreach (array_chunk($allTokens, $chunkSize) as $chunk) {
+  //  SendENewsNotificationJob::dispatch(
+    //    $title,
+      //  $body,
+        //['type' => 'enews'],
+        //$chunk
+    //)->onQueue('enews');
+//}
+
+
+
+            
             return response()->json([
                 'status'  => 200,
                 'success' => 'E-Newspaper Added Successfully!'
             ]);
 
         } catch (Exception $e) {
-
+            dd($e->getMessage());
             return response()->json([
                 'status' => 400,
                 'errors' => $e->getMessage()
@@ -263,5 +298,72 @@ class ENewspaperController extends Controller
             ]);
         }
 
+    }
+    public function viewReads(){ 
+        return view('admin.enews.view_reads');
+
+    }
+
+    public function filterReport(Request $request)
+    {
+        $filter = $request->filter;
+
+        // Date range
+        if ($filter === 'today') {
+            $start = Carbon::today();
+            $end   = Carbon::today()->endOfDay();
+        } elseif ($filter === 'yesterday') {
+            $start = Carbon::yesterday();
+            $end   = Carbon::yesterday()->endOfDay();
+        } elseif ($filter === 'week') {
+            $start = Carbon::now()->startOfWeek();
+            $end   = Carbon::now()->endOfWeek();
+        } else { // month
+            $start = Carbon::now()->startOfMonth();
+            $end   = Carbon::now()->endOfMonth();
+        }
+
+        /*
+         |-------------------------------------------
+         | DATE WISE VIEWS (English / Hindi)
+         |-------------------------------------------
+         */
+        $dateViews = DB::table('e_newspapers as e')
+            ->join('enews_reads as r', 'r.enews_id', '=', 'e.id')
+            ->select(
+                'e.type',
+                DB::raw('SUM(r.read_count) as date_views')
+            )
+            ->whereBetween('e.date', [$start->toDateString(), $end->toDateString()])
+            ->groupBy('e.type')
+            ->get();
+
+        /*
+         |-------------------------------------------
+         | TOTAL VIEWS (ALL TIME)
+         |-------------------------------------------
+         */
+        $totalViews = DB::table('e_newspapers as e')
+            ->join('enews_reads as r', 'r.enews_id', '=', 'e.id')
+            ->select(
+                'e.type',
+                DB::raw('SUM(r.read_count) as total_views')
+            )
+            ->groupBy('e.type')
+            ->pluck('total_views', 'type');
+
+        // Merge both
+        $data = [];
+        foreach ($dateViews as $row) {
+            $data[] = [
+                'type'        => ucfirst($row->type),
+                'date_views'  => (int) $row->date_views,
+                'total_views' => (int) ($totalViews[$row->type] ?? 0),
+            ];
+        }
+
+        return response()->json([
+            'data' => $data
+        ]);
     }
 }

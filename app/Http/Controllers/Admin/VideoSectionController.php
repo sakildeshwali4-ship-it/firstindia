@@ -8,6 +8,7 @@ use App\Models\TVShow;
 use App\Models\Category;
 use App\Models\Language;
 use App\Models\Video;
+use App\Models\WebSeries;
 use App\Models\App_Section;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -22,6 +23,7 @@ class VideoSectionController extends Controller
         try {
 
             $type = Type::orderby('position')->get();
+            // dd($type->toArray());
             return view('admin.video_section.index', ['type' => $type]);
         } catch (Exception $e) {
             return response()->json(array('status' => 400, 'errors' => $e->getMessage()));
@@ -30,6 +32,8 @@ class VideoSectionController extends Controller
 
     public function save(Request $request)
     {
+	 
+	 
         try {
             if (Auth::guard('admin')->user()->type != 1) {
                 return response()->json(array('status' => 400, 'errors' => __('Label.You have no right to add, edit, and delete')));
@@ -66,6 +70,10 @@ class VideoSectionController extends Controller
                 $VideoId = implode(',', $request->video_id);
                 $data->video_id = $VideoId;
 
+		if($request->type_id =="32"){
+			$data->is_webseries = 1;
+		}
+
                 if ($data->save()) {
                     return response()->json(array('status' => 200, 'success' => __('Label.Data Add Successfully')));
                 } else {
@@ -79,9 +87,20 @@ class VideoSectionController extends Controller
 
     public function get_all_data(Request $request)
     {
+        
         try {
-
-            if ($request->Video_Type == 1) {
+            if ($request->Video_Type == 0) {
+                if ($request->Type_Id != "" && $request->Type_Id != null) {
+                    $data = WebSeries::where('isActive', 1)
+                    ->select('*', 'title as name')
+                    ->get();
+                    
+                    return response()->json(array('status' => 200, 'success' => 'Data Get Successfully', 'result' => $data));
+                } else {
+                    return response()->json(array('status' => 400, 'errors' => "Data Not Found"));
+                }
+            }
+            else if ($request->Video_Type == 1) {
                 if ($request->Type_Id != "" && $request->Type_Id != null) {
 
                     $data = Video::where('type_id', $request->Type_Id)->where('video_type', $request->Video_Type)->get();
@@ -139,9 +158,11 @@ class VideoSectionController extends Controller
 					$videoIds = $data[$i]['video_id'];
 					$data[$i]['video_list'] = "";
                     if ($data[$i]['video_type'] == 1) {
-
-                        $videos = Video::select('id', 'name')->whereIn('id', $Multipal_Ids)->where('type_id', $data[$i]['type_id'])->orderByRaw("FIELD(id, $videoIds)")->get();
-
+                        if($data[$i]['type_id'] == 15) {
+                            $videos = Video::select('id', 'name')->whereIn('id', $Multipal_Ids)->orderByRaw("FIELD(id, $videoIds)")->get();
+                        } else {
+                            $videos = Video::select('id', 'name')->whereIn('id', $Multipal_Ids)->where('type_id', $data[$i]['type_id'])->orderByRaw("FIELD(id, $videoIds)")->get();
+                        }
                         /*$videos = array();
                         for ($j = 0; $j < count($video); $j++) {
                             $videos[] = $video[$j]['name'];
@@ -262,6 +283,7 @@ class VideoSectionController extends Controller
 						}
 					}
 				}
+               
                 return response()->json(array('status' => 200, 'success' => 'Data Get Successfully', 'result' => $data));
             } else if ($request->is_home_screen == 2) {
                 $data = App_Section::where('is_home_screen', 2)->with('type')->where('type_id', $request->type_id)->orderBy('position')->get();
@@ -410,7 +432,11 @@ class VideoSectionController extends Controller
             $App_Section = App_Section::where('id', $request->id)->first();
 
             if ($request->video_type == 1) {
-                $video = Video::where('type_id', $request->type_id)->where('video_type', $request->video_type)->get();
+                if($request->type_id == 15 && !empty($request->request_from) && $request->request_from == 'homeSection') {
+                    $video = Video::select('id', 'name')->where('video_type', $request->video_type)->get();
+                } else {
+                    $video = Video::where('type_id', $request->type_id)->where('video_type', $request->video_type)->get();  
+                }
             } else if ($request->video_type == 2) {
                 $video = TVShow::where('type_id', $request->type_id)->where('video_type', $request->video_type)->get();
             } else if ($request->video_type == 3) {
@@ -480,10 +506,24 @@ class VideoSectionController extends Controller
                     $data->screen_layout = $request->screen_layout;
                     $data->is_home_screen = $request->is_home_screen;
                     $data->upcoming_type = isset($request->upcoming_type) ? $request->upcoming_type : 0;
-
-                    $VideoId = implode(',', $request->video_id);
-                    $data->video_id = $VideoId;
-
+					$VideoId = '';
+					$newVideos = array_flip($request->video_id);
+					if(!empty($data->video_id)) {
+						$savedVideos = explode(',', $data->video_id);
+						foreach($savedVideos as $sk => $sv) {
+							if(isset($newVideos[$sv])) {
+								unset($newVideos[$sv]);
+								$VideoId .= ($sv.',');
+							}
+						}
+						$VideoId = rtrim($VideoId, ',');
+						$VideoId .= !empty($newVideos) ? ','.implode(',', array_flip($newVideos)) : '';
+					} else {
+						$VideoId .= implode(',', $request->video_id);
+					}
+					//echo $data->video_id.'<br>';
+					//echo trim($VideoId, ',');die;
+                    $data->video_id = trim($VideoId, ',');
                     if ($data->save()) {
                         return response()->json(array('status' => 200, 'success' => __('Label.Data Edit Successfully')));
                     } else {

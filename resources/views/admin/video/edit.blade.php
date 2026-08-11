@@ -3,6 +3,9 @@
 @section('title', __('Label.Edit Video'))
 
 @section('content')
+<style>
+.select2-search__field { color: #fff; }
+</style>
     <div class="body-content">
         <!-- mobile title -->
         <h1 class="page-title-sm">@yield('title')</h1>
@@ -89,7 +92,7 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label>{{__('Label.Type')}}</label>
-                                <select class="form-control" name="type_id">
+                                <select class="form-control" name="type_id" id="video_type">
                                     <option value=""> {{__('Label.Select Type')}}</option>
                                     @foreach ($type as $key => $value)
                                     <option value="{{ $value->id}}" {{ $result->type_id == $value->id  ? 'selected' : ''}}>
@@ -111,6 +114,58 @@
                                     @endforeach
                                 </select>
                             </div>
+                        </div>
+						<div class="col-md-6" id="is_exclusive_movie_wrapper">
+                            <div class="form-group">
+                                <label>Is Exclusive</label>
+                                <select class="form-control" name="is_exclusive_movie" id="is_exclusive_movie">
+                                    <option value="0">{{__('Label.No')}}</option>
+                                    <option {{ $result->is_exclusive_movie == 1  ? 'selected' : ''}} value="1">{{__('Label.Yes')}}</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+					<div class="form-row" id="exclusive_movie_fieds_wrapper" style="{{ $result->is_exclusive_movie == 1 ? '' : 'display:none' }}">
+                        <div class="col-md-8">
+                            <div class="form-group">
+                                <label>Trailer URL</label>
+                                <input value="<?php echo !empty($result->exclusive_movie_data['trailer_url']) ? $result->exclusive_movie_data['trailer_url'] : ''; ?>" type="text" name="exclusive_movie_data[trailer_url]" class="form-control" placeholder="Enter Trailer Url">
+                            </div>
+                        </div>
+						<div class="form-group col-lg-4 subtitle_box">
+							<label>Trailer Placeholder Image</label>
+							<div class="form-group">
+								<input type="file" id="trailer_image" name="exclusive_movie_data[trailer_image]" class="form-control">
+								<input type="hidden" name="trailer_image_old" value="<?php echo !empty($result->exclusive_movie_data['trailer_image']) ? $result->exclusive_movie_data['trailer_image'] : ''; ?>" />
+							</div>
+                        </div>
+						
+						<div class="col-md-8">
+                            <div class="form-group">
+                                <label>Teaser URL</label>
+                                <input value="<?php echo !empty($result->exclusive_movie_data['teaser_url']) ? $result->exclusive_movie_data['teaser_url'] : ''; ?>" type="text" name="exclusive_movie_data[teaser_url]" class="form-control" placeholder="Enter Teaser Url">
+                            </div>
+                        </div>
+						<div class="form-group col-lg-4 subtitle_box">
+							<label>Teaser Placeholder Image</label>
+							<div class="form-group">
+								<input type="file" id="teaser_image" name="exclusive_movie_data[teaser_image]" class="form-control">
+								<input type="hidden" name="teaser_image_old" value="<?php echo !empty($result->exclusive_movie_data['teaser_image']) ? $result->exclusive_movie_data['teaser_image'] : ''; ?>" />
+							</div>
+                        </div>
+						
+						<div class="col-md-8">
+                            <div class="form-group">
+                                <label>Promo URL</label>
+                                <input value="<?php echo !empty($result->exclusive_movie_data['promo_url']) ? $result->exclusive_movie_data['promo_url'] : ''; ?>" type="text" name="exclusive_movie_data[promo_url]" class="form-control" placeholder="Enter Promo Url">
+                            </div>
+                        </div>
+						<div class="form-group col-lg-4 subtitle_box">
+							<label>Promo Placeholder Image</label>
+							<div class="form-group">
+								<input type="file" id="promo_image" name="exclusive_movie_data[promo_image]" class="form-control">
+								<input type="hidden" name="promo_image_old" value="<?php echo !empty($result->exclusive_movie_data['promo_image']) ? $result->exclusive_movie_data['promo_image'] : ''; ?>" />
+							</div>
                         </div>
                     </div>
                     <div class="form-row">
@@ -278,7 +333,6 @@
                     </div>
                 </div>
 
-                
                 <div class="custom-border-card">
                     <div class="form-row">
                         <div class="form-group">
@@ -300,7 +354,6 @@
                         </div>
                     </div>
                 </div>
-
 
                 <div class="custom-border-card">
                     <div class="form-row">
@@ -496,6 +549,20 @@
                         </div>
                     </div>
                 </div>
+				<div class="custom-border-card">
+					<div class="form-row">
+                        <div class="form-group col-lg-12">
+                            <label>Related Videos</label>
+                            <select name="related_videos[]" class="form-control" id="related_videos" multiple>
+								@foreach ($related_video_options as $vid => $vname)
+                                    <option value="{{ $vid}}" selected="selected">
+                                        {{ $vname }}
+                                    </option>
+                                @endforeach
+							</select>
+                        </div>
+                    </div>
+                </div>
                 <div class="text-right">
                     <button type="button" class="btn btn-default mw-120" onclick="save_edit_video()">{{__('Label.SAVE')}}</button>
                 </div>
@@ -549,6 +616,9 @@
         function save_edit_video() {
             var Check_Admin = '<?php echo Check_Admin_Access(); ?>';
             if(Check_Admin == 1){
+				var redirectUrl = '{{ route("video", $queryArray) }}';
+				var re = new RegExp('&amp;', 'g');
+				var redirectUrl = redirectUrl.replace(re,'&');
                 var formData = new FormData($("#save_edit_video")[0]);
                 $("#dvloader").show();
                 $.ajax({
@@ -560,7 +630,7 @@
                     processData: false,
                     success: function(resp) {
                         $("#dvloader").hide();
-                        get_responce_message(resp, 'save_edit_video', '{{ route("video", $page) }}');
+                        get_responce_message(resp, 'save_edit_video', redirectUrl);
                     },
                     error: function(XMLHttpRequest, textStatus, errorThrown) {
                         $("#dvloader").hide();
@@ -573,6 +643,46 @@
         }
 
         $(document).ready(function() {
+			
+			/*$('#video_type').change(function() {
+				if($(this).val() == 4) {
+					$('#is_exclusive_movie_wrapper').show();
+				} else {
+					$('#is_exclusive_movie_wrapper').hide();
+					$('#exclusive_movie_fieds_wrapper').hide();
+					$('#is_exclusive_movie').val('0');
+				}
+			});*/
+			
+			$('#is_exclusive_movie').change(function() {
+				if($(this).val() == 1) {
+					$('#exclusive_movie_fieds_wrapper').show();
+				} else {
+					$('#exclusive_movie_fieds_wrapper').hide();
+				}
+			});
+			
+			$("#related_videos").select2({
+                placeholder: "Select Related Videos",
+				minimumInputLength: 4,
+				maximumSelectionLength: 20,
+				multiple: true,
+                ajax: {
+                    type: "POST",
+                    url: "{{route('search_related_videos')}}",
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+					data: function (params) {
+						return {
+							term: params.term, // search term
+							selected: $("#related_videos").val()
+						};
+					},
+					dataType: 'json'
+				}
+            });
+			
             $("#category_id").select2();
             $(".selectd2").select2({
                 placeholder: "Select Category"
@@ -660,26 +770,23 @@
                 }
             });
             
+            // First load condition
+            if ($("#skip_enable").val() == "1") {
+                $('.skip_fields').show();
+            } else {
+                $('.skip_fields').hide();
+            }
 
-             // First load condition
-                if ($("#skip_enable").val() == "1") {
+            // Change event
+            $("#skip_enable").on("change", function () {
+                if ($(this).val() == "1") {
                     $('.skip_fields').show();
                 } else {
                     $('.skip_fields').hide();
+                    $("#skip_start").val('');
+                    $("#skip_end").val('');
                 }
-
-                // Change event
-                $("#skip_enable").on("change", function () {
-                    if ($(this).val() == "1") {
-                        $('.skip_fields').show();
-                    } else {
-                        $('.skip_fields').hide();
-                        $("#skip_start").val('');
-                        $("#skip_end").val('');
-                    }
-                });
-
-
+            });
         });
 
         $('#Imdb_name').keyup(function() {

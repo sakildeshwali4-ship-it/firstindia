@@ -2,12 +2,16 @@
 
 namespace App\Http\Controllers\Admin;
 
+use Google\Auth\Credentials\ServiceAccountCredentials;
+use Google\Auth\HttpHandler\HttpHandlerFactory;
 use App\Http\Controllers\Controller;
 use App\Models\General_Setting;
 use App\Models\Notification;
+use App\Models\Users;
 use Illuminate\Http\Request;
 use Validator;
 use Exception;
+use DB;
 
 class NotificationController extends Controller
 {
@@ -58,46 +62,9 @@ class NotificationController extends Controller
 
             if ($notification->save()) {
 
-                $noty = General_Setting::where('key', 'onesignal_apid')->orWhere('key', 'onesignal_rest_key')->get();
-                $notification = [];
-                foreach ($noty as $row) {
-                    $notification[$row->key] = $row->value;
-                }
-
-                $ONESIGNAL_APP_ID = $notification['onesignal_apid'];
-                $ONESIGNAL_REST_KEY = $notification['onesignal_rest_key'];
-
-                $content = array(
-                    "en" => $request->message,
-                );
-
-                $fields = array(
-                    'app_id' => $ONESIGNAL_APP_ID,
-                    'included_segments' => array('All'),
-                    'data' => array("foo" => "bar"),
-                    'headings' => array("en" => $request->title),
-                    'contents' => $content,
-                    'big_picture' => $notificationImageURL,
-                );
-
-                $fields = json_encode($fields);
-
-                $ch = curl_init();
-                curl_setopt($ch, CURLOPT_URL, "https://onesignal.com/api/v1/notifications");
-                curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-                    'Content-Type: application/json; charset=utf-8',
-                    'Authorization: Basic ' . $ONESIGNAL_REST_KEY,
-                ));
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($ch, CURLOPT_HEADER, false);
-                curl_setopt($ch, CURLOPT_POST, true);
-                curl_setopt($ch, CURLOPT_POSTFIELDS, $fields);
-                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-
-                $response = curl_exec($ch);
-                // pre($response);
-                curl_close($ch);
-
+                
+                $this->sendFcmNotifyTopic($request->title, $request->message, $notificationImageURL);
+				// $this->_sendFcmNotify($request->title, $request->message, $notificationImageURL);
                 return response()->json(array('status' => 200, 'success' => __('Label.Data Add Successfully')));
             } else {
                 return response()->json(array('status' => 400, 'errors' => __('Label.Data Not Add')));
@@ -106,6 +73,129 @@ class NotificationController extends Controller
             return response()->json(array('status' => 400, 'errors' => $e->getMessage()));
         }
     }
+	
+    function sendFcmNotifyTopic($title = '', $message = '', $image_url = '')
+    { 
+        $credentials = array();
+
+        $tokenData = $credentials->fetchAuthToken(HttpHandlerFactory::build());
+        if (empty($tokenData['access_token'])) {
+            return false;
+        }
+
+        $accessToken = $tokenData['access_token'];
+
+        $url = 'https://fcm.googleapis.com/v1/projects/firstindia-b67a8/messages:send';
+
+        // 🔥 TOPIC PAYLOAD (1M USERS)
+        $payload = [
+            'message' => [
+                'topic' => 'firstindia_all_users',
+                'notification' => [
+                    'title' => $title ?: 'Notification',
+                    'body'  => $message,
+                ],
+                'android' => [
+                    'priority' => 'HIGH',
+                ],
+                'apns' => [
+                    'headers' => [
+                        'apns-priority'  => '10',
+                        'apns-push-type' => 'alert',
+                        'apns-topic'     => 'com.firstindia.ott'
+                    ],
+                    'payload' => [
+                        'aps' => [
+                            'alert' => [
+                                'title' => $title ?: 'Notification',
+                                'body'  => $message,
+                            ],
+                            'sound' => 'default',
+                            'badge' => 1
+                        ]
+
+
+                    ]
+                ]
+            ]
+        ];
+
+        // Optional image (Android + iOS text safe)
+        if (!empty($image_url)) {
+            $payload['message']['notification']['image'] = $image_url;
+        }
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_POST           => true,
+            CURLOPT_HTTPHEADER     => [
+                'Authorization: Bearer ' . $accessToken,
+                'Content-Type: application/json'
+            ],
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POSTFIELDS     => json_encode($payload),
+        ]);
+
+        $response = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        \Log::info('FCM Topic Response', ['code'=>$code,'resp'=>$response]);
+        curl_close($ch);
+
+        return $response;
+    }
+
+
+	function _sendFcmNotify($title = '', $message = '', $image_url = '')
+    {
+		$credentials = array();
+		$token = $credentials->fetchAuthToken(HttpHandlerFactory::build());
+		if(!empty($token['access_token'])) {
+			$accessToken = $token['access_token'];
+		} else {
+			return "";
+		}
+		$result = '';
+        $url = 'https://fcm.googleapis.com/v1/projects/firstindia-b67a8/messages:send';                 
+        $fields = [
+			'message' => [
+			"token" => '',
+			"notification"=> [
+					"title"=>($title != null)?$title:"FirstIndia Notification!", 
+					"image"=>($image_url != '')?$image_url:"",
+					"body" =>$message
+				],
+				//"topic" => "ldlffjl"
+			],
+        ];
+        //echo json_encode($fields);exit;
+        $headers = [
+			'Content-Type:application/json,',
+			'Authorization:Bearer '.$accessToken
+		];
+		Users::select('device_token')->whereNotNull('device_token')->where('device_token', '!=', '')->chunk(100, function ($users) use ($headers, $url, $fields) {
+			//foreach($users as $k => $r) {
+				$users = $users->toArray();
+				$tokenArr = array_column($users, 'device_token');
+				$ch = curl_init();
+				curl_setopt($ch, CURLOPT_URL, $url);
+				curl_setopt($ch, CURLOPT_POST, true);
+				curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+				curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+				curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+				curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+				if(!empty($tokenArr)) {
+					foreach($tokenArr as $token) {
+						$fields['message']['token'] = $token;
+						curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($fields));
+						$result = curl_exec($ch);
+					}
+				}
+				curl_close($ch);
+			//}
+		});
+        return $result; 
+    }
+	
     public function data(Request $request)
     {
         try {

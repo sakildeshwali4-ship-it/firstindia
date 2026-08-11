@@ -137,6 +137,6 @@ class SeriesController extends Controller
             return (string) $fallback;
         }
 
-        return Storage::disk('public')->url($request->file($fileKey)->store($folder, 'public'));
+        return $request->file($fileKey)->store($folder, 'public');
     }
 }

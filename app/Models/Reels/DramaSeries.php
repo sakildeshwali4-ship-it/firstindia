@@ -2,11 +2,14 @@
 
 namespace App\Models\Reels;
 
+use App\Models\Concerns\ResolvesMediaUrls;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class DramaSeries extends Model
 {
+    use ResolvesMediaUrls;
+
     protected $table = 'drama_series';
 
     protected $hidden = [
@@ -43,5 +46,15 @@ class DramaSeries extends Model
     public function episodes(): HasMany
     {
         return $this->hasMany(Episode::class, 'series_id')->orderBy('number');
+    }
+
+    public function getPosterUrlAttribute(?string $value): ?string
+    {
+        return $this->resolveMediaUrl($value);
+    }
+
+    public function getCoverUrlAttribute(?string $value): ?string
+    {
+        return $this->resolveMediaUrl($value);
     }
 }

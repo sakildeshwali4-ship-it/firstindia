@@ -138,11 +138,12 @@ Route::get("search", [WebSeriesController::class, "search"]);
 Route::post("episode/watch-progress", [EpisodeController::class, "watchProgress"]);
 
 
+
 Route::get('option-data', [HomeController::class, 'optionData']);
 Route::get('live-tv-urls', [HomeController::class, 'liveTvUrls']);
 
 Route::post('get-live-tv-urls', [HomeController::class, 'getLiveTvUrls']);
- 
+
 Route::post('/feed', 'Api\Reels\FeedController@index'); 
 Route::post('/search', 'Api\Reels\SearchController@index');
 Route::post('/wallet/packages', 'Api\Reels\WalletController@packages');
@@ -158,6 +159,7 @@ Route::post('/series/{series}/pricing', 'Api\Reels\SeriesController@pricing');
 Route::post('/series/{series}/episodes', 'Api\Reels\SeriesController@episodes');
 Route::post('/episodes/{episode}/like', 'Api\Reels\FeedController@like');
 Route::post('/watch-progress', 'Api\Reels\WatchProgressController@store');
+
 
 
 

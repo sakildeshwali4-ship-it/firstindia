@@ -209,7 +209,8 @@ class WebSeriesController extends Controller
 
         $seasons = Season::where("web_series_id", $ws->id)
                     ->where("isActive", 1)
-                    ->orderBy("id", "ASC")
+                    ->orderBy("season_number", "DESC")
+                    ->orderBy("id", "DESC")
                     ->get();
 
         foreach ($seasons as $season) {
@@ -357,7 +358,8 @@ class WebSeriesController extends Controller
         // ✅ Only Seasons (No Webseries Detail)
         $seasons = Season::where("web_series_id", $webseriesId)
                     ->where("isActive", 1)
-                    ->orderBy("id", "ASC")
+                    ->orderBy("season_number", "DESC")
+                    ->orderBy("id", "DESC")
                     ->get();
 
         if ($seasons->isEmpty()) {

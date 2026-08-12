@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\WebSeries; 
+use App\Models\Season;
 use Validator;
 use Exception; 
 use Illuminate\Support\Str;
@@ -286,12 +287,20 @@ class WebSeriesController extends Controller
         }
     }
 
-    public function reports(){ 
-        return view('admin.web_series.reports'); 
+    public function reports($id){ 
+        $webseries = WebSeries::findOrFail($id);
+        $webseriesList = WebSeries::orderBy('title')->get();
+        $seasons = Season::where('web_series_id', $id)
+            ->orderBy('season_number')
+            ->get();
+
+        return view('admin.web_series.reports', compact('webseries', 'webseriesList', 'seasons')); 
     }
 
     public function filterReport(Request $request)
     {
+        $webSeriesId = $request->web_series_id;
+        $seasonId = $request->season_id;
         $filter = $request->filter;
 
         if($filter == 'custom'){
@@ -325,15 +334,34 @@ class WebSeriesController extends Controller
                 'e.episode_number',
                 'e.name',
                 DB::raw('COALESCE(SUM(ev.counted),0) as date_views')
-            )
+            );
+
+        if (!empty($webSeriesId)) {
+            $dateViews->where('e.web_series_id', $webSeriesId);
+        }
+
+        if (!empty($seasonId)) {
+            $dateViews->where('e.season_id', $seasonId);
+        }
+
+        $dateViews = $dateViews
             ->groupBy('e.id','e.episode_number','e.name')
             ->orderBy('e.episode_number')
             ->get();
 
         // Total lifetime views
-        $totalViews = DB::table('episodes')
-            ->select('id','view')
-            ->pluck('view','id');
+        $totalViewsQuery = DB::table('episodes')
+            ->select('id','view');
+
+        if (!empty($webSeriesId)) {
+            $totalViewsQuery->where('web_series_id', $webSeriesId);
+        }
+
+        if (!empty($seasonId)) {
+            $totalViewsQuery->where('season_id', $seasonId);
+        }
+
+        $totalViews = $totalViewsQuery->pluck('view','id');
 
         $data = [];
 

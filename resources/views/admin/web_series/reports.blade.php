@@ -20,10 +20,32 @@
     </div>
 
     <!-- Filter -->
-    <div class="page-search mb-3 d-flex justify-content-end">
-        <div class="sorting mr-4 d-flex">
+    <div class="card py-3 mb-3 col-12">
+        <div class="row">
+            <div class="col-3">
+                <label>Web Series :</label>
+                <select id="webSeriesFilter" class="form-control">
+                    @foreach($webseriesList as $series)
+                        <option value="{{ $series->id }}" {{ $webseries->id == $series->id ? 'selected' : '' }}>
+                            {{ $series->title }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
 
-            <div class="mr-3">
+            <div class="col-3">
+                <label>Season :</label>
+                <select id="seasonFilter" class="form-control">
+                    <option value="">All Seasons</option>
+                    @foreach($seasons as $season)
+                        <option value="{{ $season->id }}">
+                            {{ $season->title ?: 'Season ' . $season->season_number }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="col-3">
                 <label>Sort by :</label>
                 <select id="dateFilter" class="form-control">
                     <option value="today">Today</option>
@@ -34,11 +56,10 @@
                 </select>
             </div>
 
-            <div id="customRangeDiv" style="display:none;">
+            <div class="col-3" id="customRangeDiv" style="display:none;">
                 <label>Date Range :</label>
                 <input type="text" id="dateRange" class="form-control">
             </div>
-
         </div>
     </div>
 
@@ -106,6 +127,8 @@ $(document).ready(function () {
             url: "{{ route('web-series.filterReport') }}",
             type: "GET",
             data: {
+                web_series_id: "{{ $webseries->id }}",
+                season_id: $('#seasonFilter').val(),
                 filter: filter,
                 start: start,
                 end: end
@@ -169,6 +192,17 @@ $(document).ready(function () {
 
         $('#viewsHeading').text(heading);
 
+    });
+
+    $('#seasonFilter').change(function () {
+        loadReport();
+    });
+
+    $('#webSeriesFilter').change(function () {
+        const webSeriesId = $(this).val();
+        if (webSeriesId) {
+            window.location.href = "{{ url('admin/web-series/reports') }}/" + webSeriesId;
+        }
     });
 
     loadReport();

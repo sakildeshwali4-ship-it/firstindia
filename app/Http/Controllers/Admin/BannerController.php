@@ -15,6 +15,61 @@ use Exception;
 
 class BannerController extends Controller
 {
+    private function getBannerVideoData($banner)
+    {
+        if ($banner->video_type == 0) {
+            $webseries = WebSeries::select('id', 'title')->where('id', $banner->video_id)->first();
+
+            return [
+                'id' => $webseries->id ?? $banner->video_id,
+                'name' => $webseries->title ?? 'N/A',
+            ];
+        }
+
+        if ($banner->video_type == 1) {
+            $video = Video::select('id', 'name')->where('id', $banner->video_id)->first();
+
+            return [
+                'id' => $video->id ?? $banner->video_id,
+                'name' => $video->name ?? 'N/A',
+            ];
+        }
+
+        if ($banner->video_type == 2) {
+            $show = TVShow::select('id', 'name')->where('id', $banner->video_id)->first();
+
+            return [
+                'id' => $show->id ?? $banner->video_id,
+                'name' => $show->name ?? 'N/A',
+            ];
+        }
+
+        if ($banner->video_type == 5) {
+            if ($banner->upcoming_type == 1) {
+                $video = Video::select('id', 'name')->where('id', $banner->video_id)->first();
+
+                return [
+                    'id' => $video->id ?? $banner->video_id,
+                    'name' => $video->name ?? 'N/A',
+                ];
+            }
+
+            if ($banner->upcoming_type == 2) {
+                $show = TVShow::select('id', 'name')->where('id', $banner->video_id)->first();
+
+                return [
+                    'id' => $show->id ?? $banner->video_id,
+                    'name' => $show->name ?? 'N/A',
+                ];
+            }
+        }
+
+        return [
+            'id' => $banner->video_id,
+            'name' => 'N/A',
+        ];
+    }
+
     public function index()
     {
         try {
@@ -23,7 +78,9 @@ class BannerController extends Controller
             $video = array();
             if ($type != null && count($type) > 0) {
 
-                if ($type[0]->type == 1) {
+                if ($type[0]->type == 0) {
+                    $video = WebSeries::where('isActive', 1)->get(['id', 'title as name']);
+                } else if ($type[0]->type == 1) {
                     $video = Video::where('type_id', $type[0]->id)->get();
                 } else if ($type[0]->type == 2) {
                     $video = TVShow::where('type_id', $type[0]->id)->get();
@@ -106,60 +163,14 @@ class BannerController extends Controller
 
                 $data = Banner::where('is_home_screen', $request->is_home_screen)->with('type')->orderBy('id', 'desc')->get();
                 for ($i = 0; $i < count($data); $i++) {
-                    if ($data[$i]->video_type == 1) {
-
-                        $video = Video::select('id', 'name')->where('id', $data[$i]->video_id)->first();
-                        $data[$i]['video'] = $video;
-                    } else if ($data[$i]->video_type == 2) {
-
-                        $show = TVShow::select('id', 'name')->where('id', $data[$i]->video_id)->first();
-                        $data[$i]['video'] = $show;
-                    } else if ($data[$i]->video_type == 5) {
-
-                        if ($data[$i]->upcoming_type == 1) {
-
-                            $video = Video::select('id', 'name')->where('id', $data[$i]->video_id)->first();
-                            $data[$i]['video'] = $video;
-                        } else if ($data[$i]->upcoming_type == 2) {
-
-                            $show = TVShow::select('id', 'name')->where('id', $data[$i]->video_id)->first();
-                            $data[$i]['video'] = $show;
-                        }
-                    }
+                    $data[$i]['video'] = $this->getBannerVideoData($data[$i]);
                 }
             } else {
  
                 $data = Banner::where('type_id', $request->type_id)->where('is_home_screen', $request->is_home_screen)->orderBy('id', 'desc')->with('type')->get();
                 
                 for ($i = 0; $i < count($data); $i++) {
-
-                    if ($data[$i]->video_type == 0) {
-                        $video = WebSeries::select('id', 'title')->where('id', $data[$i]->video_id)->first(); 
-                        $data[$i]['video'] = [
-                            'id' => $video->id, 
-                            'name' => $video->title
-                        ];
-                    }
-                    else if ($data[$i]->video_type == 1) {
-
-                        $video = Video::select('id', 'name')->where('id', $data[$i]->video_id)->first();
-                        $data[$i]['video'] = $video;
-                    } else if ($data[$i]->video_type == 2) {
-
-                        $show = TVShow::select('id', 'name')->where('id', $data[$i]->video_id)->first();
-                        $data[$i]['video'] = $show;
-                    } else if ($data[$i]->video_type == 5) {
-
-                        if ($data[$i]->upcoming_type == 1) {
-
-                            $video = Video::select('id', 'name')->where('id', $data[$i]->video_id)->first();
-                            $data[$i]['video'] = $video;
-                        } else if ($data[$i]->upcoming_type == 2) {
-
-                            $show = TVShow::select('id', 'name')->where('id', $data[$i]->video_id)->first();
-                            $data[$i]['video'] = $show;
-                        }
-                    }
+                    $data[$i]['video'] = $this->getBannerVideoData($data[$i]);
                 }
             }
 

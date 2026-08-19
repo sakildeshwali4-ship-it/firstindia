@@ -5359,28 +5359,7 @@ public function enewsBannerDetails(){
         }
     }
 
-    public function getLiveTvUrlsOLd()
-    {
-        
-        $data = LiveTv::get();
-        $data = $data->map(function($item) {
-            return [
-                'id' => $item->id,
-                'name' => $item->name,
-                'image' => $item->image ?  $item->image : null,
-                'dialog_image' => $item->dialog_image ? $item->dialog_image : null,
-                'url' => $item->url,
-            ];
-        });
-
-        return response()->json([
-            'status' => 200,
-            'message' => 'Success',
-            'data' => $data->isNotEmpty() ? $data : null
-        ]);
-        
-    }
-    public function getLiveTvUrls()
+   public function getLiveTvUrls()
     {
         $channels = LiveTv::select(
             'id',
@@ -5450,13 +5429,13 @@ public function enewsBannerDetails(){
             'papers' => [
                 [
                     'name' => 'First India English',
-                    'image_url' => 'https://cdn.example.com/enews/english-cover.jpg',
+                    'image_url' => asset("images/enewspapers/enews-english.png"),
                     'type' => 'english',
                     'display_order' => 1,
                 ],
                 [
                     'name' => 'First India Hindi',
-                    'image_url' => 'https://cdn.example.com/enews/hindi-cover.jpg',
+                    'image_url' => asset("images/enewspapers/enews-hindi.png"),
                     'type' => 'hindi',
                     'display_order' => 2,
                 ],

@@ -5445,10 +5445,29 @@ public function enewsBannerDetails(){
             })
             ->values();
 
+        $enews_papers = [
+            'heading' => 'E-News Papers Touch & Read',
+            'papers' => [
+                [
+                    'name' => 'First India English',
+                    'image_url' => 'https://cdn.example.com/enews/english-cover.jpg',
+                    'type' => 'english',
+                    'display_order' => 1,
+                ],
+                [
+                    'name' => 'First India Hindi',
+                    'image_url' => 'https://cdn.example.com/enews/hindi-cover.jpg',
+                    'type' => 'hindi',
+                    'display_order' => 2,
+                ],
+            ],
+        ];
+
         return response()->json([
             'status' => 200,
             'message' => 'success',
             'data' => $channels,
+            'enews_papers' => $enews_papers,
             'ads' => $ads
         ]);
     }  

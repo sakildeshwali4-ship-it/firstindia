@@ -68,7 +68,7 @@
             <thead>
                 <tr style="background: #F9FAFF;">
                     <th>Episode No</th>
-                    <th>Name</th>
+                    <th id="nameHeading">Name</th>
                     <th id="viewsHeading">Views</th>
                     <th>Total Views</th>
                 </tr>
@@ -112,7 +112,6 @@ $(document).ready(function () {
         let filter = $('#dateFilter').val();
         let start = '';
         let end = '';
-
         if(filter === 'custom'){
             let range = $('#dateRange').val();
 
@@ -195,6 +194,14 @@ $(document).ready(function () {
     });
 
     $('#seasonFilter').change(function () {
+        let selectedSeasonText = $('#seasonFilter option:selected').text().trim();
+        let heading = 'Name';
+
+        if ($(this).val() && selectedSeasonText) {
+            heading = `Name (${selectedSeasonText})`;
+        }
+
+        $('#nameHeading').text(heading);
         loadReport();
     });
 
@@ -205,7 +212,7 @@ $(document).ready(function () {
         }
     });
 
-    loadReport();
+    $('#seasonFilter').trigger('change');
 
 });
 </script>
